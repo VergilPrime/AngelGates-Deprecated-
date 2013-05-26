@@ -1,0 +1,44 @@
+# AngelGate Configuration File
+#
+# default-gate-network - The default gate network
+# destroyexplosion - Whether or not to destroy gates with explosions (Creeper, TNT, etc)
+# maxgates - The maximum number of gates allowed on a network - 0 for unlimited
+# max-gates-per-network - The max number of gates a network can hold.
+# lang - The language file to load for messages
+# destMemory - Whether to remember the cursor location between uses
+# ignoreEntrance - Ignore the entrance blocks of a gate when checking. Used to work around snowmen
+# handleVehicles - Whether to allow vehicles through gates
+# sortLists - Whether to sort network lists alphabetically
+# protectEntrance - Whether to protect gate entrance material (More resource intensive. Only enable if using destroyable open/closed material)
+# signColor - The color used for drawing signs (Default: BLACK). See: 
+############################
+# AngelGate economy options #
+############################
+# useiconomy - Whether to use an economy plugin (Uses Register to interact with all economy plugins)
+# createcost - The cost to create a gate
+# destroycost - The cost to destroy a gate
+# usecost - The cost to use a gate
+# toowner - Whether the charge for using a gate goes to the gates owner
+#################
+# Debug options #
+#################
+# debug - Debug -- Only enable if you have issues, massive console output
+# permdebug - This will output any and all Permissions checks to console, used for permissions debugging (Requires debug: true)
+default-gate-network: central
+destroyexplosion: false
+maxgates: 0
+max-gates-per-network: 0
+lang: en
+destMemory: false
+ignoreEntrance: false
+handleVehicles: true
+sortLists: false
+protectEntrance: false
+signColor: BLACK
+useiconomy: false
+createcost: 0
+destroycost: 0
+usecost: 0
+toowner: false
+debug: false
+permdebug: false

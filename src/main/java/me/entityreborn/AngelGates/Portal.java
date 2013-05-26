@@ -1,0 +1,1201 @@
+package me.entityreborn.AngelGates;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Scanner;
+import java.util.logging.Level;
+import me.entityreborn.AngelGates.events.AngelGatesActivateEvent;
+import me.entityreborn.AngelGates.events.AngelGatesCloseEvent;
+import me.entityreborn.AngelGates.events.AngelGatesCreateEvent;
+import me.entityreborn.AngelGates.events.AngelGatesDeactivateEvent;
+import me.entityreborn.AngelGates.events.AngelGatesOpenEvent;
+import me.entityreborn.AngelGates.events.AngelGatesPortalEvent;
+
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.StorageMinecart;
+import org.bukkit.entity.Vehicle;
+import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.material.Button;
+import org.bukkit.material.MaterialData;
+import org.bukkit.util.Vector;
+
+/**
+ * AngelGate - A portal plugin for Bukkit Copyright (C) 2011 Shaun (sturmeh)
+ * Copyright (C) 2011 Dinnerbone Copyright (C) 2011, 2012 Steven "Drakia" Scott
+ * <Contact@TheDgtl.net>
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option) any
+ * later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+public class Portal {
+    // Static variables used to store portal lists
+
+    private static final HashMap<Blox, Portal> lookupBlocks = new HashMap<Blox, Portal>();
+    private static final HashMap<Blox, Portal> lookupEntrances = new HashMap<Blox, Portal>();
+    private static final HashMap<Blox, Portal> lookupControls = new HashMap<Blox, Portal>();
+    private static final ArrayList<Portal> allPortals = new ArrayList<Portal>();
+    private static final HashMap<String, ArrayList<String>> allPortalsNet = new HashMap<String, ArrayList<String>>();
+    private static final HashMap<String, HashMap<String, Portal>> lookupNamesNet = new HashMap<String, HashMap<String, Portal>>();
+    // A list of Bungee gates
+    private static final HashMap<String, Portal> bungeePortals = new HashMap<String, Portal>();
+    // Gate location block info
+    private Blox topLeft;
+    private int modX;
+    private int modZ;
+    private float rotX;
+    // Block references
+    private Blox id;
+    private Blox button;
+    private Blox[] frame;
+    private Blox[] entrances;
+    // Gate information
+    private String name;
+    private String destination;
+    private String lastDest = "";
+    private String network;
+    private Gate gate;
+    private String owner = "";
+    private World world;
+    private boolean verified;
+    private boolean fixed;
+    // In-use information
+    private Player player;
+    private Player activePlayer;
+    private ArrayList<String> destinations = new ArrayList<String>();
+    private boolean isOpen = false;
+    private long openTime;
+    private boolean free;
+
+    private Portal(Blox topLeft, int modX, int modZ,
+            float rotX, Blox id, Blox button,
+            String dest, String name,
+            boolean verified, String network, Gate gate, String owner) {
+        this.topLeft = topLeft;
+        this.modX = modX;
+        this.modZ = modZ;
+        this.rotX = rotX;
+        this.id = id;
+        this.destination = dest;
+        this.button = button;
+        this.verified = verified;
+        this.network = network;
+        this.name = name;
+        this.gate = gate;
+        this.owner = owner;
+        this.world = topLeft.getWorld();
+        this.fixed = dest.length() > 0;
+
+        if (verified) {
+            this.drawSign();
+        }
+    }
+
+    /**
+     * Option Check Functions
+     */
+    public boolean isOpen() {
+        return isOpen;
+    }
+
+    /**
+     * Getters and Setters
+     */
+    public float getRotation() {
+        return rotX;
+    }
+
+    public Player getActivePlayer() {
+        return activePlayer;
+    }
+
+    public String getNetworkName() {
+        return network;
+    }
+
+    public void setNetwork(String network) {
+        this.network = network;
+    }
+
+    public long getOpenTime() {
+        return openTime;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = filterName(name);
+        drawSign();
+    }
+
+    public Portal getDestination(Player player) {
+        return Portal.getByName(destination, getNetworkName());
+    }
+
+    public Portal getDestination() {
+        return getDestination(null);
+    }
+
+    public void setDestination(Portal destination) {
+        setDestination(destination.getName());
+    }
+
+    public void setDestination(String destination) {
+        this.destination = destination;
+    }
+
+    public String getDestinationName() {
+        return destination;
+    }
+
+    public Gate getGate() {
+        return gate;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
+
+    public Blox[] getEntrances() {
+        if (entrances == null) {
+            RelativeBlockVector[] space = gate.getEntrances();
+            entrances = new Blox[space.length];
+            int i = 0;
+
+            for (RelativeBlockVector vector : space) {
+                entrances[i++] = getBlockAt(vector);
+            }
+        }
+        return entrances;
+    }
+
+    public Blox[] getFrame() {
+        if (frame == null) {
+            RelativeBlockVector[] border = gate.getBorder();
+            frame = new Blox[border.length];
+            int i = 0;
+
+            for (RelativeBlockVector vector : border) {
+                frame[i++] = getBlockAt(vector);
+            }
+        }
+
+        return frame;
+    }
+
+    public Block getSign() {
+        return id.getBlock();
+    }
+
+    public World getWorld() {
+        return world;
+    }
+
+    public Block getButton() {
+        if (button == null) {
+            return null;
+        }
+        return button.getBlock();
+    }
+
+    public void setButton(Blox button) {
+        this.button = button;
+    }
+
+    public static ArrayList<String> getNetwork(String network) {
+        return allPortalsNet.get(network.toLowerCase());
+    }
+
+    public boolean open(boolean force) {
+        return open(null, force);
+    }
+
+    public boolean open(Player openFor, boolean force) {
+        // Call the AngelGateOpenEvent
+        AngelGatesOpenEvent event = new AngelGatesOpenEvent(openFor, this, force);
+        AngelGates.server.getPluginManager().callEvent(event);
+        if (event.isCancelled()) {
+            return false;
+        }
+        force = event.getForce();
+
+        if (isOpen() && !force) {
+            return false;
+        }
+
+        getWorld().loadChunk(getWorld().getChunkAt(topLeft.getBlock()));
+
+        int openType = gate.getPortalBlockOpen();
+        for (Blox inside : getEntrances()) {
+            AngelGates.blockPopulatorQueue.add(new BloxPopulator(inside, openType));
+        }
+
+        isOpen = true;
+        openTime = System.currentTimeMillis() / 1000;
+        AngelGates.openList.add(this);
+        AngelGates.activeList.remove(this);
+
+        player = openFor;
+
+        Portal end = getDestination();
+        // Only open dest if it's not-fixed or points at this gate
+        if (end != null && (!end.isFixed() || end.getDestinationName().equalsIgnoreCase(getName())) && !end.isOpen()) {
+            end.open(openFor, false);
+            end.setDestination(this);
+            if (end.isVerified()) {
+                end.drawSign();
+            }
+        }
+
+        return true;
+    }
+
+    public void close(boolean force) {
+        if (!isOpen) {
+            return;
+        }
+        // Call the AngelGateCloseEvent
+        AngelGatesCloseEvent event = new AngelGatesCloseEvent(this, force);
+        AngelGates.server.getPluginManager().callEvent(event);
+        if (event.isCancelled()) {
+            return;
+        }
+        force = event.getForce();
+
+        // Close this gate, then the dest gate.
+        int closedType = gate.getPortalBlockClosed();
+        for (Blox inside : getEntrances()) {
+            AngelGates.blockPopulatorQueue.add(new BloxPopulator(inside, closedType));
+        }
+
+        player = null;
+        isOpen = false;
+        AngelGates.openList.remove(this);
+        AngelGates.activeList.remove(this);
+
+        Portal end = getDestination();
+
+        if (end != null && end.isOpen()) {
+            end.deactivate(); // Clear it's destination first.
+            end.close(false);
+        }
+
+        deactivate();
+    }
+
+    public boolean isOpenFor(Player player) {
+        if (!isOpen) {
+            return false;
+        }
+
+        if (this.player == null) {
+            return true;
+        }
+
+        return (player != null) && (player.getName().equalsIgnoreCase(this.player.getName()));
+    }
+
+    public boolean isFixed() {
+        return fixed;
+    }
+
+    public boolean isPowered() {
+        RelativeBlockVector[] controls = gate.getControls();
+
+        for (RelativeBlockVector vector : controls) {
+            MaterialData mat = getBlockAt(vector).getBlock().getState().getData();
+
+            if (mat instanceof Button && ((Button) mat).isPowered()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void teleport(Player player, Portal origin, PlayerMoveEvent event) {
+        Location traveller = player.getLocation();
+        Location exit = getExit(traveller);
+
+        exit.setYaw(origin.getRotation() - traveller.getYaw() + this.getRotation() + 180);
+
+        // Call the AngelGatePortalEvent to allow plugins to change destination
+        if (!origin.equals(this)) {
+            AngelGatesPortalEvent pEvent = new AngelGatesPortalEvent(player, origin, this, exit);
+            AngelGates.server.getPluginManager().callEvent(pEvent);
+            // Teleport is cancelled
+            if (pEvent.isCancelled()) {
+                origin.teleport(player, origin, event);
+                return;
+            }
+            // Update exit if needed
+            exit = pEvent.getExit();
+        }
+
+        // If no event is passed in, assume it's a teleport, and act as such
+        if (event == null) {
+            exit.setYaw(this.getRotation());
+            player.teleport(exit);
+        } else {
+            // The new method to teleport in a move event is set the "to" field.
+            event.setTo(exit);
+        }
+    }
+
+    public void teleport(final Vehicle vehicle) {
+        Location traveller = new Location(this.world, vehicle.getLocation().getX(), vehicle.getLocation().getY(), vehicle.getLocation().getZ());
+        Location exit = getExit(traveller);
+
+        double velocity = vehicle.getVelocity().length();
+
+        // Stop and teleport
+        vehicle.setVelocity(new Vector());
+
+        // Get new velocity
+        final Vector newVelocity = new Vector();
+        switch ((int) id.getBlock().getData()) {
+            case 2:
+                newVelocity.setZ(-1);
+                break;
+            case 3:
+                newVelocity.setZ(1);
+                break;
+            case 4:
+                newVelocity.setX(-1);
+                break;
+            case 5:
+                newVelocity.setX(1);
+                break;
+        }
+        newVelocity.multiply(velocity);
+
+        final Entity passenger = vehicle.getPassenger();
+        if (passenger != null) {
+            final Vehicle v = exit.getWorld().spawn(exit, vehicle.getClass());
+            vehicle.eject();
+            vehicle.remove();
+            passenger.teleport(exit);
+            AngelGates.server.getScheduler().scheduleSyncDelayedTask(AngelGates.self, new Runnable() {
+                public void run() {
+                    v.setPassenger(passenger);
+                    v.setVelocity(newVelocity);
+                }
+            }, 1);
+        } else {
+            Vehicle mc = exit.getWorld().spawn(exit, vehicle.getClass());
+            if (mc instanceof StorageMinecart) {
+                StorageMinecart smc = (StorageMinecart) mc;
+                smc.getInventory().setContents(((StorageMinecart) vehicle).getInventory().getContents());
+            }
+            mc.setVelocity(newVelocity);
+            vehicle.remove();
+        }
+    }
+
+    public Location getExit(Location traveller) {
+        Location loc = null;
+        // Check if the gate has an exit block
+        if (gate.getExit() != null) {
+            Blox exit = getBlockAt(gate.getExit());
+            loc = exit.modRelativeLoc(0D, 0D, 1D, traveller.getYaw(), traveller.getPitch(), modX, 1, modZ);
+        } else {
+            AngelGates.log.warning("Missing destination point in .gate file " + gate.getFilename());
+        }
+
+        if (loc != null) {
+            if (getWorld().getBlockTypeIdAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()) == Material.STEP.getId()) {
+                loc.setY(loc.getY() + 0.5);
+            }
+
+            loc.setPitch(traveller.getPitch());
+            return loc;
+        }
+        return traveller;
+    }
+
+    public boolean isChunkLoaded() {
+        return getWorld().isChunkLoaded(topLeft.getBlock().getChunk());
+    }
+
+    public void loadChunk() {
+        getWorld().loadChunk(topLeft.getBlock().getChunk());
+    }
+
+    public boolean isVerified() {
+        verified = true;
+        for (RelativeBlockVector control : gate.getControls()) {
+            verified = verified && getBlockAt(control).getBlock().getTypeId() == gate.getControlBlock();
+        }
+        return verified;
+    }
+
+    public boolean wasVerified() {
+        return verified;
+    }
+
+    public boolean checkIntegrity() {
+        return gate.matches(topLeft, modX, modZ);
+    }
+
+    public ArrayList<String> getDestinations(Player player, String network) {
+        ArrayList<String> destinations = new ArrayList<String>();
+        for (String dest : allPortalsNet.get(network.toLowerCase())) {
+            Portal portal = getByName(dest, network);
+
+            if (dest.equalsIgnoreCase(getName())) {
+                continue;
+            }
+            // Check if dest is a fixed gate not pointing to this gate
+            if (portal.isFixed() && !portal.getDestinationName().equalsIgnoreCase(getName())) {
+                continue;
+            }
+            // Allow random use by non-players (Minecarts)
+            if (player == null) {
+                destinations.add(portal.getName());
+                continue;
+            }
+            // Check if this player can access the dest world
+            if (!AngelGates.canAccessWorld(player, portal.getWorld().getName())) {
+                continue;
+            }
+            destinations.add(portal.getName());
+        }
+        return destinations;
+    }
+
+    public boolean activate(Player player) {
+        destinations.clear();
+        destination = "";
+        AngelGates.activeList.add(this);
+        activePlayer = player;
+        String network = getNetworkName();
+        destinations = getDestinations(player, network);
+        if (AngelGates.sortLists) {
+            Collections.sort(destinations);
+        }
+        if (AngelGates.destMemory && !lastDest.isEmpty() && destinations.contains(lastDest)) {
+            destination = lastDest;
+        }
+
+        AngelGatesActivateEvent event = new AngelGatesActivateEvent(this, player, destinations, destination);
+        AngelGates.server.getPluginManager().callEvent(event);
+        if (event.isCancelled()) {
+            AngelGates.activeList.remove(this);
+            return false;
+        }
+        destination = event.getDestination();
+        destinations = event.getDestinations();
+        drawSign();
+        return true;
+    }
+
+    public void deactivate() {
+        AngelGatesDeactivateEvent event = new AngelGatesDeactivateEvent(this);
+        AngelGates.server.getPluginManager().callEvent(event);
+        if (event.isCancelled()) {
+            return;
+        }
+
+        AngelGates.activeList.remove(this);
+        if (isFixed()) {
+            return;
+        }
+        destinations.clear();
+        destination = "";
+        activePlayer = null;
+        drawSign();
+    }
+
+    public boolean isActive() {
+        return isFixed() || (destinations.size() > 0);
+    }
+
+    public void cycleDestination(Player player) {
+        cycleDestination(player, 1);
+    }
+
+    public void cycleDestination(Player player, int dir) {
+        Boolean activate = false;
+        if (!isActive() || getActivePlayer() != player) {
+            // If the event is cancelled, return
+            if (!activate(player)) {
+                return;
+            }
+            AngelGates.debug("cycleDestination", "Network Size: " + allPortalsNet.get(network.toLowerCase()).size());
+            AngelGates.debug("cycleDestination", "Player has access to: " + destinations.size());
+            activate = true;
+        }
+
+        if (destinations.isEmpty()) {
+            AngelGates.sendMessage(player, AngelGates.getString("destEmpty"));
+            return;
+        }
+
+        if (!AngelGates.destMemory || !activate || lastDest.isEmpty()) {
+            int index = destinations.indexOf(destination);
+            index += dir;
+            if (index >= destinations.size()) {
+                index = 0;
+            } else if (index < 0) {
+                index = destinations.size() - 1;
+            }
+            destination = destinations.get(index);
+            lastDest = destination;
+        }
+        openTime = System.currentTimeMillis() / 1000;
+        drawSign();
+    }
+
+    public final void drawSign() {
+        Material sMat = id.getBlock().getType();
+        if (sMat != Material.SIGN && sMat != Material.WALL_SIGN && sMat != Material.SIGN_POST) {
+            AngelGates.log.warning("Sign block is not a Sign object");
+            AngelGates.debug("Portal::drawSign", "Block: " + id.getBlock().getType() + " @ " + id.getBlock().getLocation());
+            return;
+        }
+        Sign sign = (Sign) id.getBlock().getState();
+        AngelGates.setLine(sign, 0, "-" + name + "-");
+        int max = destinations.size() - 1;
+        int done = 0;
+
+        if (!isActive()) {
+            AngelGates.setLine(sign, ++done, AngelGates.getString("signRightClick"));
+            AngelGates.setLine(sign, ++done, AngelGates.getString("signToUse"));
+            AngelGates.setLine(sign, ++done, "(" + network + ")");
+        } else {
+            if (isFixed()) {
+                AngelGates.setLine(sign, ++done, ">" + destination + "<");
+                AngelGates.setLine(sign, ++done, "(" + network + ")");
+                Portal dest = Portal.getByName(destination, network);
+
+                if (dest == null) {
+                    AngelGates.setLine(sign, ++done, AngelGates.getString("signDisconnected"));
+                } else {
+                    AngelGates.setLine(sign, ++done, "");
+                }
+            } else {
+                int index = destinations.indexOf(destination);
+
+                if ((index == max) && (max > 1) && (++done <= 3)) {
+                    AngelGates.setLine(sign, done, destinations.get(index - 2));
+                }
+
+                if ((index > 0) && (++done <= 3)) {
+                    AngelGates.setLine(sign, done, destinations.get(index - 1));
+                }
+
+                if (++done <= 3) {
+                    AngelGates.setLine(sign, done, " >" + destination + "< ");
+                }
+
+                if ((max >= index + 1) && (++done <= 3)) {
+                    AngelGates.setLine(sign, done, destinations.get(index + 1));
+                }
+
+                if ((max >= index + 2) && (++done <= 3)) {
+                    AngelGates.setLine(sign, done, destinations.get(index + 2));
+                }
+            }
+        }
+
+        for (done++; done <= 3; done++) {
+            sign.setLine(done, "");
+        }
+
+        sign.update();
+    }
+
+    public void unregister(boolean removeAll) {
+        AngelGates.debug("Unregister", "Unregistering gate " + getName());
+        close(true);
+
+        for (Blox block : getFrame()) {
+            lookupBlocks.remove(block);
+        }
+        // Include the sign and button
+        lookupBlocks.remove(id);
+        if (button != null) {
+            lookupBlocks.remove(button);
+        }
+
+        lookupControls.remove(id);
+        if (button != null) {
+            lookupControls.remove(button);
+        }
+
+        for (Blox entrance : getEntrances()) {
+            lookupEntrances.remove(entrance);
+        }
+
+        if (removeAll) {
+            allPortals.remove(this);
+        }
+
+
+        lookupNamesNet.get(getNetworkName().toLowerCase()).remove(getName().toLowerCase());
+        allPortalsNet.get(getNetworkName().toLowerCase()).remove(getName().toLowerCase());
+
+        for (String originName : allPortalsNet.get(getNetworkName().toLowerCase())) {
+            Portal origin = Portal.getByName(originName, getNetworkName());
+            if (origin == null) {
+                continue;
+            }
+            if (!origin.getDestinationName().equalsIgnoreCase(getName())) {
+                continue;
+            }
+            if (!origin.isVerified()) {
+                continue;
+            }
+            if (origin.isFixed()) {
+                origin.drawSign();
+            }
+            origin.close(true);
+        }
+
+        if (id.getBlock().getType() == Material.WALL_SIGN && id.getBlock().getState() instanceof Sign) {
+            Sign sign = (Sign) id.getBlock().getState();
+            sign.setLine(0, getName());
+            sign.setLine(1, "");
+            sign.setLine(2, "");
+            sign.setLine(3, "");
+            sign.update();
+        }
+
+        saveAllGates(getWorld());
+    }
+
+    private Blox getBlockAt(RelativeBlockVector vector) {
+        return topLeft.modRelative(vector.getRight(), vector.getDepth(), vector.getDistance(), modX, 1, modZ);
+    }
+
+    private void register() {
+        fixed = destination.length() > 0;
+
+        // Check if network exists in our network list
+        if (!lookupNamesNet.containsKey(getNetworkName().toLowerCase())) {
+            AngelGates.debug("register", "Network " + getNetworkName() + " not in lookupNamesNet, adding");
+            lookupNamesNet.put(getNetworkName().toLowerCase(), new HashMap<String, Portal>());
+        }
+        lookupNamesNet.get(getNetworkName().toLowerCase()).put(getName().toLowerCase(), this);
+
+        // Check if this network exists
+        if (!allPortalsNet.containsKey(getNetworkName().toLowerCase())) {
+            AngelGates.debug("register", "Network " + getNetworkName() + " not in allPortalsNet, adding");
+            allPortalsNet.put(getNetworkName().toLowerCase(), new ArrayList<String>());
+        }
+        allPortalsNet.get(getNetworkName().toLowerCase()).add(getName().toLowerCase());
+
+        for (Blox block : getFrame()) {
+            lookupBlocks.put(block, this);
+        }
+        // Include the sign and button
+        lookupBlocks.put(id, this);
+        if (button != null) {
+            lookupBlocks.put(button, this);
+        }
+
+        lookupControls.put(id, this);
+        if (button != null) {
+            lookupControls.put(button, this);
+        }
+
+        for (Blox entrance : getEntrances()) {
+            lookupEntrances.put(entrance, this);
+        }
+
+        allPortals.add(this);
+    }
+
+    public static Portal createPortal(SignChangeEvent event, Player player) {
+        Blox id = new Blox(event.getBlock());
+        Block idParent = id.getParent();
+        if (idParent == null) {
+            return null;
+        }
+
+        if (Gate.getGatesByControlBlock(idParent).length == 0) {
+            return null;
+        }
+
+        if (Portal.getByBlock(idParent) != null) {
+            AngelGates.debug("createPortal", "idParent belongs to existing gate");
+            return null;
+        }
+
+        Blox parent = new Blox(player.getWorld(), idParent.getX(), idParent.getY(), idParent.getZ());
+        Blox topleft = null;
+        String name = filterName(event.getLine(0));
+        String destName = filterName(event.getLine(1));
+        String network = filterName(event.getLine(2));
+        String options = filterName(event.getLine(3)).toLowerCase();
+
+        // Moved the layout check so as to avoid invalid messages when not making a gate
+        int modX = 0;
+        int modZ = 0;
+        float rotX = 0f;
+        int facing = 0;
+
+        if (idParent.getX() > id.getBlock().getX()) {
+            modZ -= 1;
+            rotX = 90f;
+            facing = 2;
+        } else if (idParent.getX() < id.getBlock().getX()) {
+            modZ += 1;
+            rotX = 270f;
+            facing = 1;
+        } else if (idParent.getZ() > id.getBlock().getZ()) {
+            modX += 1;
+            rotX = 180f;
+            facing = 4;
+        } else if (idParent.getZ() < id.getBlock().getZ()) {
+            modX -= 1;
+            rotX = 0f;
+            facing = 3;
+        }
+
+        Gate[] possibleGates = Gate.getGatesByControlBlock(idParent);
+        Gate gate = null;
+        RelativeBlockVector buttonVector = null;
+
+        for (Gate possibility : possibleGates) {
+            if ((gate == null) && (buttonVector == null)) {
+                RelativeBlockVector[] vectors = possibility.getControls();
+                RelativeBlockVector otherControl = null;
+
+                for (RelativeBlockVector vector : vectors) {
+                    Blox tl = parent.modRelative(-vector.getRight(), -vector.getDepth(), -vector.getDistance(), modX, 1, modZ);
+
+                    if (gate == null) {
+                        if (possibility.matches(tl, modX, modZ, true)) {
+                            gate = possibility;
+                            topleft = tl;
+
+                            if (otherControl != null) {
+                                buttonVector = otherControl;
+                            }
+                        }
+                    } else if (otherControl != null) {
+                        buttonVector = vector;
+                    }
+
+                    otherControl = vector;
+                }
+            }
+        }
+
+        if ((gate == null) || (buttonVector == null)) {
+            AngelGates.debug("createPortal", "Could not find matching gate layout");
+            return null;
+        }
+
+        if ((network.length() < 1 || network.length() > 11)) {
+            network = AngelGates.getDefaultNetwork();
+        }
+
+        boolean deny = false;
+        String denyMsg = "";
+
+        // Check if the player can create gates on this network
+        if (!AngelGates.canCreate(player, network)) {
+            AngelGates.debug("createPortal", "Player doesn't have create permissions on network. Trying personal");
+            if (AngelGates.canCreatePersonal(player)) {
+                network = player.getName();
+                if (network.length() > 11) {
+                    network = network.substring(0, 11);
+                }
+                AngelGates.debug("createPortal", "Creating personal portal");
+                AngelGates.sendMessage(player, AngelGates.getString("createPersonal"));
+            } else {
+                AngelGates.debug("createPortal", "Player does not have access to network");
+                deny = true;
+                denyMsg = AngelGates.getString("createNetDeny");
+                //return null;
+            }
+        }
+
+        // Check if the player can create this gate layout
+        String gateName = gate.getFilename();
+        gateName = gateName.substring(0, gateName.indexOf('.'));
+        if (!deny && !AngelGates.canCreateGate(player, gateName)) {
+            AngelGates.debug("createPortal", "Player does not have access to gate layout");
+            deny = true;
+            denyMsg = AngelGates.getString("createGateDeny");
+        }
+
+        // Check if the user can create gates to this world.
+        if (!deny && destName.length() > 0) {
+            Portal p = Portal.getByName(destName, network);
+            if (p != null) {
+                String world = p.getWorld().getName();
+                if (!AngelGates.canAccessWorld(player, world)) {
+                    AngelGates.debug("canCreate", "Player does not have access to destination world");
+                    deny = true;
+                    denyMsg = AngelGates.getString("createWorldDeny");
+                }
+            }
+        }
+
+        // Bleh, gotta check to make sure none of this gate belongs to another gate. Boo slow.
+        for (RelativeBlockVector v : gate.getBorder()) {
+            Blox b = topleft.modRelative(v.getRight(), v.getDepth(), v.getDistance(), modX, 1, modZ);
+            if (Portal.getByBlock(b.getBlock()) != null) {
+                AngelGates.debug("createPortal", "Gate conflicts with existing gate");
+                AngelGates.sendMessage(player, AngelGates.getString("createConflict"));
+                return null;
+            }
+        }
+
+        Blox button = null;
+        Portal portal = null;
+        portal = new Portal(topleft, modX, modZ, rotX, id, button, destName, name, false, network, gate, player.getName());
+
+        int cost = AngelGates.getCreateCost(player, gate);
+
+        // Call AngelGateCreateEvent
+        AngelGatesCreateEvent cEvent = new AngelGatesCreateEvent(player, portal, event.getLines(), deny, denyMsg, cost);
+        AngelGates.server.getPluginManager().callEvent(cEvent);
+        if (cEvent.isCancelled()) {
+            return null;
+        }
+        if (cEvent.getDeny()) {
+            AngelGates.sendMessage(player, cEvent.getDenyReason());
+            return null;
+        }
+
+        cost = cEvent.getCost();
+
+        // Name & Network can be changed in the event, so do these checks here.
+        if (portal.getName().length() < 1 || portal.getName().length() > 11) {
+            AngelGates.debug("createPortal", "Name length error");
+            AngelGates.sendMessage(player, AngelGates.getString("createNameLength"));
+            return null;
+        }
+
+        if (getByName(portal.getName(), portal.getNetworkName()) != null) {
+            AngelGates.debug("createPortal", "Name Error");
+            AngelGates.sendMessage(player, AngelGates.getString("createExists"));
+            return null;
+        }
+
+        // Check if there are too many gates in this network
+        ArrayList<String> netList = allPortalsNet.get(portal.getNetworkName().toLowerCase());
+        if (AngelGates.maxGates > 0 && netList != null && netList.size() >= AngelGates.maxGates) {
+            AngelGates.sendMessage(player, AngelGates.getString("createFull"));
+            return null;
+        }
+
+        if (cost > 0) {
+            if (!AngelGates.chargePlayer(player, null, cost)) {
+                String inFundMsg = AngelGates.getString("ecoInFunds");
+                inFundMsg = AngelGates.replaceVars(inFundMsg, new String[]{"%cost%", "%portal%"}, new String[]{EconomyHandler.format(cost), name});
+                AngelGates.sendMessage(player, inFundMsg);
+                AngelGates.debug("createPortal", "Insufficient Funds");
+                return null;
+            }
+            String deductMsg = AngelGates.getString("ecoDeduct");
+            deductMsg = AngelGates.replaceVars(deductMsg, new String[]{"%cost%", "%portal%"}, new String[]{EconomyHandler.format(cost), name});
+            AngelGates.sendMessage(player, deductMsg, false);
+        }
+
+        button = topleft.modRelative(buttonVector.getRight(), buttonVector.getDepth(), buttonVector.getDistance() + 1, modX, 1, modZ);
+        button.setType(Material.STONE_BUTTON.getId());
+        button.setData(facing);
+
+        portal.setButton(button);
+        portal.register();
+        portal.drawSign();
+
+        for (Blox inside : portal.getEntrances()) {
+            inside.setType(portal.getGate().getPortalBlockClosed());
+        }
+
+        for (String originName : allPortalsNet.get(portal.getNetworkName().toLowerCase())) {
+            Portal origin = Portal.getByName(originName, portal.getNetworkName());
+            if (origin == null) {
+                continue;
+            }
+            if (!origin.getDestinationName().equalsIgnoreCase(portal.getName())) {
+                continue;
+            }
+            if (!origin.isVerified()) {
+                continue;
+            }
+            if (origin.isFixed()) {
+                origin.drawSign();
+            }
+        }
+
+        saveAllGates(portal.getWorld());
+
+        return portal;
+    }
+
+    public static Portal getByName(String name, String network) {
+        if (!lookupNamesNet.containsKey(network.toLowerCase())) {
+            return null;
+        }
+        return lookupNamesNet.get(network.toLowerCase()).get(name.toLowerCase());
+
+    }
+
+    public static Portal getByEntrance(Location location) {
+        return lookupEntrances.get(new Blox(location));
+    }
+
+    public static Portal getByEntrance(Block block) {
+        return lookupEntrances.get(new Blox(block));
+    }
+
+    public static Portal getByControl(Block block) {
+        return lookupControls.get(new Blox(block));
+    }
+
+    public static Portal getByBlock(Block block) {
+        return lookupBlocks.get(new Blox(block));
+    }
+
+    public static Portal getBungeeGate(String name) {
+        return bungeePortals.get(name.toLowerCase());
+    }
+
+    public static void saveAllGates(World world) {
+        String loc = AngelGates.getSaveLocation() + "/" + world.getName() + ".db";
+
+        try {
+            BufferedWriter bw = new BufferedWriter(new FileWriter(loc, false));
+
+            for (Portal portal : allPortals) {
+                String wName = portal.world.getName();
+                if (!wName.equalsIgnoreCase(world.getName())) {
+                    continue;
+                }
+                StringBuilder builder = new StringBuilder();
+                Blox sign = new Blox(portal.id.getBlock());
+                Blox button = portal.button;
+
+                builder.append(portal.name);
+                builder.append(':');
+                builder.append(sign.toString());
+                builder.append(':');
+                builder.append((button != null) ? button.toString() : "");
+                builder.append(':');
+                builder.append(portal.modX);
+                builder.append(':');
+                builder.append(portal.modZ);
+                builder.append(':');
+                builder.append(portal.rotX);
+                builder.append(':');
+                builder.append(portal.topLeft.toString());
+                builder.append(':');
+                builder.append(portal.gate.getFilename());
+                builder.append(':');
+                builder.append(portal.isFixed() ? portal.getDestinationName() : "");
+                builder.append(':');
+                builder.append(portal.getNetworkName());
+                builder.append(':');
+                builder.append(portal.getOwner());
+                builder.append(':');
+                builder.append(portal.world.getName());
+
+                bw.append(builder.toString());
+                bw.newLine();
+            }
+
+            bw.close();
+        } catch (Exception e) {
+            AngelGates.log.log(Level.SEVERE, "Exception while writing AngelGates to " + loc + ": " + e);
+        }
+    }
+
+    public static void clearGates() {
+        lookupBlocks.clear();
+        lookupNamesNet.clear();
+        lookupEntrances.clear();
+        lookupControls.clear();
+        allPortals.clear();
+        allPortalsNet.clear();
+    }
+
+    public static void loadAllGates(World world) {
+        String location = AngelGates.getSaveLocation();
+
+        File db = new File(location, world.getName() + ".db");
+
+        if (db.exists()) {
+            int l = 0;
+            int portalCount = 0;
+            try {
+                Scanner scanner = new Scanner(db);
+                while (scanner.hasNextLine()) {
+                    l++;
+                    String line = scanner.nextLine().trim();
+                    if (line.startsWith("#") || line.isEmpty()) {
+                        continue;
+                    }
+                    String[] split = line.split(":");
+                    if (split.length < 8) {
+                        AngelGates.log.info("Invalid line - " + l);
+                        continue;
+                    }
+                    String name = split[0];
+                    Blox sign = new Blox(world, split[1]);
+                    if (!(sign.getBlock().getState() instanceof Sign)) {
+                        AngelGates.log.info("Sign on line " + l + " doesn't exist. BlockType = " + sign.getBlock().getType());
+                        continue;
+                    }
+                    Blox button = (split[2].length() > 0) ? new Blox(world, split[2]) : null;
+                    int modX = Integer.parseInt(split[3]);
+                    int modZ = Integer.parseInt(split[4]);
+                    float rotX = Float.parseFloat(split[5]);
+                    Blox topLeft = new Blox(world, split[6]);
+                    Gate gate = (split[7].contains(";")) ? Gate.getGateByName("nethergate.gate") : Gate.getGateByName(split[7]);
+                    if (gate == null) {
+                        AngelGates.log.info("Gate layout on line " + l + " does not exist [" + split[7] + "]");
+                        continue;
+                    }
+
+                    String dest = (split.length > 8) ? split[8] : "";
+                    String network = (split.length > 9) ? split[9] : AngelGates.getDefaultNetwork();
+                    if (network.isEmpty()) {
+                        network = AngelGates.getDefaultNetwork();
+                    }
+                    String owner = (split.length > 10) ? split[10] : "";
+
+                    Portal portal = new Portal(topLeft, modX, modZ, rotX, sign, button, dest, name, false, network, gate, owner);
+                    portal.register();
+                    portal.close(true);
+                }
+
+                scanner.close();
+
+                // Open any always-on gates. Do this here as it should be more efficient than in the loop.
+                int OpenCount = 0;
+                for (Iterator<Portal> iter = allPortals.iterator(); iter.hasNext();) {
+                    Portal portal = iter.next();
+                    if (portal == null) {
+                        continue;
+                    }
+
+                    // Verify portal integrity/register portal
+                    if (!portal.wasVerified()) {
+                        if (!portal.isVerified() || !portal.checkIntegrity()) {
+                            // DEBUG
+                            for (RelativeBlockVector control : portal.getGate().getControls()) {
+                                if (portal.getBlockAt(control).getBlock().getTypeId() != portal.getGate().getControlBlock()) {
+                                    AngelGates.debug("loadAllGates", "Control Block Type == " + portal.getBlockAt(control).getBlock().getTypeId());
+                                }
+                            }
+                            portal.unregister(false);
+                            iter.remove();
+                            AngelGates.log.info("Destroying AngelGate at " + portal.toString());
+                            continue;
+                        } else {
+                            portal.drawSign();
+                            portalCount++;
+                        }
+                    }
+
+                    if (!portal.isFixed()) {
+                        continue;
+                    }
+
+                    Portal dest = portal.getDestination();
+                    if (dest != null) {
+                        portal.drawSign();
+                        dest.drawSign();
+                    }
+                }
+                AngelGates.log.info("{" + world.getName() + "} Loaded " + portalCount + " AngelGates with " + OpenCount + " set as always-on");
+            } catch (Exception e) {
+                AngelGates.log.log(Level.SEVERE, "Exception while reading AngelGates from " + db.getName() + ": " + l);
+                e.printStackTrace();
+            }
+        } else {
+            AngelGates.log.info("{" + world.getName() + "} No AngelGates for world ");
+        }
+    }
+
+    public static void closeAllGates() {
+        AngelGates.log.info("Closing all AngelGates.");
+        for (Portal p : allPortals) {
+            if (p == null) {
+                continue;
+            }
+            p.close(true);
+        }
+    }
+
+    public static String filterName(String input) {
+        return input.replaceAll("[\\|:#]", "").trim();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Portal [id=%s, network=%s name=%s, type=%s]", id, network, name, gate.getFilename());
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((name == null) ? 0 : name.hashCode());
+        result = prime * result + ((network == null) ? 0 : network.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        Portal other = (Portal) obj;
+        if (name == null) {
+            if (other.name != null) {
+                return false;
+            }
+        } else if (!name.equalsIgnoreCase(other.name)) {
+            return false;
+        }
+        if (network == null) {
+            if (other.network != null) {
+                return false;
+            }
+        } else if (!network.equalsIgnoreCase(other.network)) {
+            return false;
+        }
+        return true;
+    }
+}

@@ -1,0 +1,10 @@
+name: AngelGate
+main: me.entityreborn.AngelGates.AngelGates
+version: 0.7.9.9
+description: Custom gate mod for Bukkit
+authors: [Drakia, EntityReborn]
+website: http://www.thedgtl.net
+commands:
+  ag:
+    description: Used to reload the plugin. Console use only.
+    usage: /<command> reload - Used to reload the plugin. Console use only.
