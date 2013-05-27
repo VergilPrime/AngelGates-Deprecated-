@@ -9,42 +9,14 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import me.entityreborn.AngelGates.events.AngelGatesAccessEvent;
-import me.entityreborn.AngelGates.events.AngelGatesDestroyEvent;
-
 import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Vehicle;
-import org.bukkit.event.Event.Result;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockFromToEvent;
-import org.bukkit.event.block.BlockPhysicsEvent;
-import org.bukkit.event.block.BlockPistonExtendEvent;
-import org.bukkit.event.block.BlockPistonRetractEvent;
-import org.bukkit.event.block.SignChangeEvent;
-import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerPortalEvent;
-import org.bukkit.event.server.PluginDisableEvent;
-import org.bukkit.event.server.PluginEnableEvent;
-import org.bukkit.event.vehicle.VehicleMoveEvent;
-import org.bukkit.event.world.WorldLoadEvent;
-import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
@@ -69,6 +41,7 @@ import org.bukkit.plugin.java.JavaPlugin;
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 public class AngelGates extends JavaPlugin {
+
     public static Logger log;
     public static Plugin self;
     public static Server server;
@@ -78,11 +51,11 @@ public class AngelGates extends JavaPlugin {
     private static String langFolder;
     private static String defNetwork = "central";
     public static boolean destroyExplosion = false;
-    public static int maxGates = 0;
+    public static int defaultNetsPerPlayer = 0;
     private static String langName = "en";
     private static int activeTime = 10;
     private static int openTime = 10;
-    public static boolean destMemory = false;
+    public static boolean rememberLastDest = false;
     public static boolean handleVehicles = true;
     public static boolean sortLists = false;
     public static boolean protectEntrance = false;
@@ -91,13 +64,12 @@ public class AngelGates extends JavaPlugin {
     public static boolean ignoreEntrance = false;
     // Used for debug
     public static boolean debug = false;
-    public static boolean permDebug = false;
     public static ConcurrentLinkedQueue<Portal> openList = new ConcurrentLinkedQueue<Portal>();
     public static ConcurrentLinkedQueue<Portal> activeList = new ConcurrentLinkedQueue<Portal>();
     // Used for populating gate open/closed material.
     public static Queue<BloxPopulator> blockPopulatorQueue = new LinkedList<BloxPopulator>();
 
-        public static void debug(String rout, String msg) {
+    public static void debug(String rout, String msg) {
         if (AngelGates.debug) {
             log.info("[AngelGate::" + rout + "] " + msg);
         } else {
@@ -105,7 +77,7 @@ public class AngelGates extends JavaPlugin {
         }
     }
 
-        public static void sendMessage(CommandSender player, String message) {
+    public static void sendMessage(CommandSender player, String message) {
         sendMessage(player, message, true);
     }
 
@@ -179,9 +151,6 @@ public class AngelGates extends JavaPlugin {
      * Check whether the player has the given permissions.
      */
     public static boolean hasPerm(Player player, String perm) {
-        if (permDebug) {
-            AngelGates.debug("hasPerm::SuperPerm(" + player.getName() + ")", perm + " => " + player.hasPermission(perm));
-        }
         return player.hasPermission(perm);
     }
 
@@ -193,91 +162,23 @@ public class AngelGates extends JavaPlugin {
      */
     public static boolean hasPermDeep(Player player, String perm) {
         if (!player.isPermissionSet(perm)) {
-            if (permDebug) {
-                AngelGates.debug("hasPermDeep::SuperPerm", perm + " => true");
-            }
             return true;
         }
-        if (permDebug) {
-            AngelGates.debug("hasPermDeep::SuperPerms", perm + " => " + player.hasPermission(perm));
-        }
+        
         return player.hasPermission(perm);
     }
-
-    /*
-     * Check whether player can teleport to dest world
-     */
-    public static boolean canAccessWorld(Player player, String world) {
-        // Can use all AngelGate player features or access all worlds
-        if (hasPerm(player, "AngelGates.use") || hasPerm(player, "AngelGates.world")) {
-            // Do a deep check to see if the player lacks this specific world node
-            if (!hasPermDeep(player, "AngelGates.world." + world)) {
-                return false;
-            }
-            return true;
-        }
-        // Can access dest world
-        if (hasPerm(player, "AngelGates.world." + world)) {
-            return true;
-        }
-        return false;
-    }
-
-    /*
-     * Check whether player can use network
-     */
-    public static boolean canAccessNetwork(Player player, String network) {
-        // Can user all AngelGate player features, or access all networks
-        if (hasPerm(player, "AngelGates.use") || hasPerm(player, "AngelGates.network")) {
-            // Do a deep check to see if the player lacks this specific network node
-            if (!hasPermDeep(player, "AngelGates.network." + network)) {
-                return false;
-            }
-            return true;
-        }
-        // Can access this network
-        if (hasPerm(player, "AngelGates.network." + network)) {
-            return true;
-        }
-        // Is able to create personal gates (Assumption is made they can also access them)
-        String playerName = player.getName().toLowerCase();
-        if (playerName.length() > 11) {
-            playerName = playerName.substring(0, 11);
-        }
-        if (network.equals(playerName) && hasPerm(player, "AngelGates.create.personal")) {
-            return true;
-        }
-        return false;
-    }
-
-    /*
-     * Check whether the player can access this server
-     */
-    public static boolean canAccessServer(Player player, String server) {
-        // Can user all AngelGate player features, or access all servers
-        if (hasPerm(player, "AngelGates.use") || hasPerm(player, "AngelGates.servers")) {
-            // Do a deep check to see if the player lacks this specific server node
-            if (!hasPermDeep(player, "AngelGates.server." + server)) {
-                return false;
-            }
-            return true;
-        }
-        // Can access this server
-        if (hasPerm(player, "AngelGates.server." + server)) {
-            return true;
-        }
-        return false;
-    }
-
+    
     /*
      * Call the AngelGateAccessPortal event, used for other plugins to bypass Permissions checks
      */
-    public static boolean canAccessPortal(Player player, Portal portal, boolean deny) {
+    public static boolean canUsePortal(Player player, Portal portal, boolean deny) {
         AngelGatesAccessEvent event = new AngelGatesAccessEvent(player, portal, deny);
         AngelGates.server.getPluginManager().callEvent(event);
+        
         if (event.getDeny()) {
             return false;
         }
+        
         return true;
     }
 
@@ -286,58 +187,20 @@ public class AngelGates extends JavaPlugin {
      */
     public static boolean canCreate(Player player, String network) {
         // Check for general create
-        if (hasPerm(player, "AngelGates.create")) {
+        if (hasPerm(player, "AngelGates.admin") || 
+                hasPerm(player, "AngelGates.admin.create")) {
             return true;
         }
-        // Check for all network create permission
-        if (hasPerm(player, "AngelGates.create.network")) {
-            // Do a deep check to see if the player lacks this specific network node
-            if (!hasPermDeep(player, "AngelGates.create.network." + network)) {
-                return false;
-            }
+        
+        if (Networks.has(network)) {
+            return Networks.get(network).isMember(player.getName());
+        }
+        
+        if (defaultNetsPerPlayer <= 0) {
             return true;
         }
-        // Check for this specific network
-        if (hasPerm(player, "AngelGates.create.network." + network)) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /*
-     * Check if the player can create a personal gate
-     */
-    public static boolean canCreatePersonal(Player player) {
-        // Check for general create
-        if (hasPerm(player, "AngelGates.create")) {
-            return true;
-        }
-        // Check for personal
-        if (hasPerm(player, "AngelGates.create.personal")) {
-            return true;
-        }
-        return false;
-    }
-
-    /*
-     * Check if the player can create this gate layout
-     */
-    public static boolean canCreateGate(Player player, String gate) {
-        // Check for general create
-        if (hasPerm(player, "AngelGates.create")) {
-            return true;
-        }
-        // Check for all gate create permissions
-        if (hasPerm(player, "AngelGates.create.gate")) {
-            // Do a deep check to see if the player lacks this specific gate node
-            if (!hasPermDeep(player, "AngelGates.create.gate." + gate)) {
-                return false;
-            }
-            return true;
-        }
-        // Check for this specific gate
-        if (hasPerm(player, "AngelGates.create.gate." + gate)) {
+        
+        if (Networks.getOwnedNetworks(network).size() < defaultNetsPerPlayer) {
             return true;
         }
 
@@ -348,27 +211,15 @@ public class AngelGates extends JavaPlugin {
      * Check if the player can destroy this gate
      */
     public static boolean canDestroy(Player player, Portal portal) {
-        String network = portal.getNetworkName();
         // Check for general destroy
-        if (hasPerm(player, "AngelGates.destroy")) {
+        if (hasPerm(player, "AngelGates.admin")) {
             return true;
         }
-        // Check for all network destroy permission
-        if (hasPerm(player, "AngelGates.destroy.network")) {
-            // Do a deep check to see if the player lacks permission for this network node
-            if (!hasPermDeep(player, "AngelGates.destroy.network." + network)) {
-                return false;
-            }
+        
+        if (portal.getNetwork().isMember(player.getName())) {
             return true;
         }
-        // Check for this specific network
-        if (hasPerm(player, "AngelGates.destroy.network." + network)) {
-            return true;
-        }
-        // Check for personal gate
-        if (player.getName().equalsIgnoreCase(portal.getOwner()) && hasPerm(player, "AngelGates.destroy.personal")) {
-            return true;
-        }
+        
         return false;
     }
 
@@ -391,7 +242,7 @@ public class AngelGates extends JavaPlugin {
     /*
      * Determine the cost of a gate
      */
-    public static int getUseCost(Player player, Portal src, Portal dest) {
+    public static int getGateCost(Player player, Portal src, Portal dest) {
         // Not using iConomy
         if (!EconomyHandler.useEconomy()) {
             return 0;
@@ -401,7 +252,8 @@ public class AngelGates extends JavaPlugin {
             return 0;
         }
         // Player gets free gate use
-        if (hasPerm(player, "AngelGates.free") || hasPerm(player, "AngelGates.free.use")) {
+        if (hasPerm(player, "AngelGates.free") || hasPerm(player, "AngelGates.free.use")
+                || hasPerm(player, "AngelGates.admin")) {
             return 0;
         }
 
@@ -417,7 +269,8 @@ public class AngelGates extends JavaPlugin {
             return 0;
         }
         // Player gets free gate destruction
-        if (hasPerm(player, "AngelGates.free") || hasPerm(player, "AngelGates.free.create")) {
+        if (hasPerm(player, "AngelGates.free") || hasPerm(player, "AngelGates.free.create")
+                || hasPerm(player, "AngelGates.admin")) {
             return 0;
         }
 
@@ -433,7 +286,8 @@ public class AngelGates extends JavaPlugin {
             return 0;
         }
         // Player gets free gate destruction
-        if (hasPerm(player, "AngelGates.free") || hasPerm(player, "AngelGates.free.destroy")) {
+        if (hasPerm(player, "AngelGates.free") || hasPerm(player, "AngelGates.free.destroy")
+                || hasPerm(player, "AngelGates.admin")) {
             return 0;
         }
 
@@ -452,6 +306,20 @@ public class AngelGates extends JavaPlugin {
         }
         return format;
     }
+
+    static boolean canOpenNetwork(Player player, String networkName) {
+        if (hasPerm(player, "AngelGates.admin")) {
+            return true;
+        }
+        
+        if (networkName.equalsIgnoreCase(defNetwork) ||
+                Networks.get(networkName).isMember(player.getName())) {
+            return true;
+        }
+        
+        return false;
+    }
+    
     private FileConfiguration newConfig;
     private PluginManager pm;
 
@@ -460,6 +328,7 @@ public class AngelGates extends JavaPlugin {
         Portal.closeAllGates();
         Portal.clearGates();
         getServer().getScheduler().cancelTasks(this);
+        Networks.save(getDataFolder().getPath());
     }
 
     @Override
@@ -467,11 +336,11 @@ public class AngelGates extends JavaPlugin {
         PluginDescriptionFile pdfFile = this.getDescription();
         self = this;
         server = getServer();
-        
+
         pm = getServer().getPluginManager();
         newConfig = this.getConfig();
         log = getLogger();
-        
+
         // Set portalFile and gateFolder to the plugin folder as defaults.
         portalFolder = new File(getDataFolder(), "portals").getPath();
         gateFolder = new File(getDataFolder(), "gates").getPath();
@@ -487,7 +356,6 @@ public class AngelGates extends JavaPlugin {
         // It is important to load languages here, as they are used during reloadGates()
         lang = new LangLoader(langFolder, langName);
 
-        this.migrate();
         this.reloadGates();
 
         // Check to see if iConomy is loaded yet.
@@ -522,16 +390,16 @@ public class AngelGates extends JavaPlugin {
 
         // Load values into variables
         defNetwork = newConfig.getString("default-gate-network").trim();
-        destroyExplosion = newConfig.getBoolean("destroyexplosion");
-        maxGates = newConfig.getInt("maxgates");
-        langName = newConfig.getString("lang");
-        destMemory = newConfig.getBoolean("destMemory");
-        ignoreEntrance = newConfig.getBoolean("ignoreEntrance");
-        handleVehicles = newConfig.getBoolean("handleVehicles");
-        sortLists = newConfig.getBoolean("sortLists");
-        protectEntrance = newConfig.getBoolean("protectEntrance");
+        destroyExplosion = newConfig.getBoolean("destroy-explosion");
+        defaultNetsPerPlayer = newConfig.getInt("nets-per-player");
+        langName = newConfig.getString("language");
+        rememberLastDest = newConfig.getBoolean("remember-destination");
+        ignoreEntrance = newConfig.getBoolean("ignore-entrance");
+        handleVehicles = newConfig.getBoolean("handle-vehicles");
+        sortLists = newConfig.getBoolean("sort-lists");
+        protectEntrance = newConfig.getBoolean("protect-entrance");
         // Sign color
-        String sc = newConfig.getString("signColor");
+        String sc = newConfig.getString("sign-color");
         try {
             signColor = ChatColor.valueOf(sc.toUpperCase());
         } catch (Exception ignore) {
@@ -540,13 +408,12 @@ public class AngelGates extends JavaPlugin {
         }
         // Debug
         debug = newConfig.getBoolean("debug");
-        permDebug = newConfig.getBoolean("permdebug");
         // iConomy
-        EconomyHandler.useEconomy = newConfig.getBoolean("useiconomy");
-        EconomyHandler.createCost = newConfig.getInt("createcost");
-        EconomyHandler.destroyCost = newConfig.getInt("destroycost");
-        EconomyHandler.useCost = newConfig.getInt("usecost");
-        EconomyHandler.toOwner = newConfig.getBoolean("toowner");
+        EconomyHandler.useEconomy = newConfig.getBoolean("use-economy");
+        EconomyHandler.createCost = newConfig.getInt("create-cost");
+        EconomyHandler.destroyCost = newConfig.getInt("destroy-cost");
+        EconomyHandler.useCost = newConfig.getInt("use-cost");
+        EconomyHandler.payOwner = newConfig.getBoolean("pay-owner");
 
         this.saveConfig();
     }
@@ -566,37 +433,8 @@ public class AngelGates extends JavaPlugin {
         for (World world : getServer().getWorlds()) {
             Portal.loadAllGates(world);
         }
-    }
-
-    private void migrate() {
-        // Only migrate if new file doesn't exist.
-        File newPortalDir = new File(portalFolder);
-        if (!newPortalDir.exists()) {
-            newPortalDir.mkdirs();
-        }
-        File newFile = new File(portalFolder, getServer().getWorlds().get(0).getName() + ".db");
-        if (!newFile.exists()) {
-            newFile.getParentFile().mkdirs();
-            // Migrate not-so-old AngelGate db
-            File oldishFile = new File(getDataFolder(), "AngelGates.db");
-            if (oldishFile.exists()) {
-                log.info("Migrating existing AngelGates.db");
-                oldishFile.renameTo(newFile);
-            }
-        }
-
-        // Migrate old gates if applicaple
-        File oldDir = new File("AngelGates");
-        if (oldDir.exists()) {
-            File newDir = new File(gateFolder);
-            if (!newDir.exists()) {
-                newDir.mkdirs();
-            }
-            for (File file : oldDir.listFiles(new Gate.AngelGateFilenameFilter())) {
-                log.info("Migrating existing gate " + file.getName());
-                file.renameTo(new File(gateFolder, file.getName()));
-            }
-        }
+        
+        Networks.load(getDataFolder().getPath());
     }
 
     @Override

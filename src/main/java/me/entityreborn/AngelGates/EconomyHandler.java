@@ -32,7 +32,7 @@ public class EconomyHandler {
     public static int useCost = 0;
     public static int createCost = 0;
     public static int destroyCost = 0;
-    public static boolean toOwner = false;
+    public static boolean payOwner = false;
 
     public static double getBalance(String player) {
         if (!useEconomy) {

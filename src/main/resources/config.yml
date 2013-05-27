@@ -3,7 +3,7 @@
 # default-gate-network - The default gate network
 # destroyexplosion - Whether or not to destroy gates with explosions (Creeper, TNT, etc)
 # maxgates - The maximum number of gates allowed on a network - 0 for unlimited
-# max-gates-per-network - The max number of gates a network can hold.
+# default-max-networks - The max number of networks a user can own. Being a member doesn't apply.
 # lang - The language file to load for messages
 # destMemory - Whether to remember the cursor location between uses
 # ignoreEntrance - Ignore the entrance blocks of a gate when checking. Used to work around snowmen
@@ -26,19 +26,17 @@
 # permdebug - This will output any and all Permissions checks to console, used for permissions debugging (Requires debug: true)
 default-gate-network: central
 destroyexplosion: false
-maxgates: 0
-max-gates-per-network: 0
-lang: en
-destMemory: false
-ignoreEntrance: false
-handleVehicles: true
-sortLists: false
-protectEntrance: false
-signColor: BLACK
-useiconomy: false
-createcost: 0
-destroycost: 0
-usecost: 0
-toowner: false
+nets-per-player: 0
+language: en
+remember-destination: false
+ignore-entrance: false
+handle-vehicles: true
+sort-lists: false
+protect-entrance: false
+sign-color: BLACK
+use-economy: false
+create-cost: 0
+destroy-cost: 0
+use-cost: 0
+pay-owner: false
 debug: false
-permdebug: false

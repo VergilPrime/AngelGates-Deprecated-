@@ -4,9 +4,8 @@
  */
 package me.entityreborn.AngelGates;
 
-import static me.entityreborn.AngelGates.AngelGates.canAccessNetwork;
-import static me.entityreborn.AngelGates.AngelGates.canAccessPortal;
-import static me.entityreborn.AngelGates.AngelGates.canAccessWorld;
+import static me.entityreborn.AngelGates.AngelGates.canOpenNetwork;
+import static me.entityreborn.AngelGates.AngelGates.canUsePortal;
 import static me.entityreborn.AngelGates.AngelGates.handleVehicles;
 import static me.entityreborn.AngelGates.AngelGates.log;
 import static me.entityreborn.AngelGates.AngelGates.openPortal;
@@ -64,38 +63,24 @@ public class BukkitListener implements Listener {
 
         if (passenger instanceof Player) {
             Player player = (Player) passenger;
-            if (!portal.isOpenFor(player)) {
-                AngelGates.sendMessage(player, AngelGates.getString("denyMsg"));
-                return;
-            }
 
             Portal dest = portal.getDestination(player);
             if (dest == null) {
                 return;
             }
-            boolean deny = false;
-            // Check if player has access to this network
-            if (!canAccessNetwork(player, portal.getNetworkName())) {
-                deny = true;
-            }
 
-            // Check if player has access to destination world
-            if (!canAccessWorld(player, dest.getWorld().getName())) {
-                deny = true;
-            }
-
-            if (!canAccessPortal(player, portal, deny)) {
+            if (!canUsePortal(player, portal, false)) {
                 AngelGates.sendMessage(player, AngelGates.getString("denyMsg"));
                 portal.close(false);
                 return;
             }
 
-            int cost = AngelGates.getUseCost(player, portal, dest);
+            int cost = AngelGates.getGateCost(player, portal, dest);
             if (cost > 0) {
                 String target = portal.getGate().getToOwner() ? portal.getOwner() : null;
                 if (!AngelGates.chargePlayer(player, target, cost)) {
                     // Insufficient Funds
-                    AngelGates.sendMessage(player, AngelGates.getString("inFunds"));
+                    AngelGates.sendMessage(player, AngelGates.getString("ecoInFunds"));
                     portal.close(false);
                     return;
                 }
@@ -174,38 +159,19 @@ public class BukkitListener implements Listener {
             return;
         }
 
-        // Not open for this player
-        if (!portal.isOpenFor(player)) {
-            AngelGates.sendMessage(player, AngelGates.getString("denyMsg"));
-            portal.teleport(player, portal, event);
-            return;
-        }
-
         Portal destination = portal.getDestination(player);
         if (destination == null) {
             return;
         }
 
-        boolean deny = false;
-
-        // Check if player has access to this network
-        if (!canAccessNetwork(player, portal.getNetworkName())) {
-            deny = true;
-        }
-
-        // Check if player has access to destination world
-        if (!canAccessWorld(player, destination.getWorld().getName())) {
-            deny = true;
-        }
-
-        if (!canAccessPortal(player, portal, deny)) {
+        if (!canUsePortal(player, portal, false)) {
             AngelGates.sendMessage(player, AngelGates.getString("denyMsg"));
             portal.teleport(player, portal, event);
             portal.close(false);
             return;
         }
 
-        int cost = AngelGates.getUseCost(player, portal, destination);
+        int cost = AngelGates.getGateCost(player, portal, destination);
         if (cost > 0) {
             String target = portal.getGate().getToOwner() ? portal.getOwner() : null;
             if (!AngelGates.chargePlayer(player, target, cost)) {
@@ -236,7 +202,8 @@ public class BukkitListener implements Listener {
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
-        Block block = null;
+        Block block;
+        
         if (event.isCancelled() && event.getAction() == Action.RIGHT_CLICK_AIR) {
             try {
                 block = player.getTargetBlock(null, 5);
@@ -264,11 +231,11 @@ public class BukkitListener implements Listener {
                 event.setUseInteractedBlock(Event.Result.DENY);
 
                 boolean deny = false;
-                if (!AngelGates.canAccessNetwork(player, portal.getNetworkName())) {
+                if (!canOpenNetwork(player, portal.getNetworkName())) {
                     deny = true;
                 }
 
-                if (!AngelGates.canAccessPortal(player, portal, deny)) {
+                if (!canUsePortal(player, portal, deny)) {
                     AngelGates.sendMessage(player, AngelGates.getString("denyMsg"));
                     return;
                 }
@@ -291,19 +258,18 @@ public class BukkitListener implements Listener {
                 event.setUseInteractedBlock(Event.Result.DENY);
 
                 boolean deny = false;
-                if (!AngelGates.canAccessNetwork(player, portal.getNetworkName())) {
+                if (!canOpenNetwork(player, portal.getNetworkName())) {
                     deny = true;
                 }
 
-                if (!AngelGates.canAccessPortal(player, portal, deny)) {
+                if (!canUsePortal(player, portal, deny)) {
                     AngelGates.sendMessage(player, AngelGates.getString("denyMsg"));
                     return;
                 }
 
                 openPortal(player, portal);
-                if (portal.isOpenFor(player)) {
-                    event.setUseInteractedBlock(Event.Result.ALLOW);
-                }
+                
+                event.setUseInteractedBlock(Event.Result.ALLOW);
             }
             return;
         }
@@ -313,6 +279,7 @@ public class BukkitListener implements Listener {
             // Check if we're scrolling a sign
             if (block.getType() == Material.WALL_SIGN) {
                 Portal portal = Portal.getByBlock(block);
+                
                 if (portal == null) {
                     return;
                 }
@@ -324,11 +291,11 @@ public class BukkitListener implements Listener {
                 }
 
                 boolean deny = false;
-                if (!AngelGates.canAccessNetwork(player, portal.getNetworkName())) {
+                if (!canOpenNetwork(player, portal.getNetworkName())) {
                     deny = true;
                 }
 
-                if (!AngelGates.canAccessPortal(player, portal, deny)) {
+                if (!canUsePortal(player, portal, deny)) {
                     AngelGates.sendMessage(player, AngelGates.getString("denyMsg"));
                     return;
                 }
@@ -352,11 +319,11 @@ public class BukkitListener implements Listener {
                 }
 
                 boolean deny = false;
-                if (!AngelGates.canAccessNetwork(player, portal.getNetworkName())) {
+                if (!canOpenNetwork(player, portal.getNetworkName())) {
                     deny = true;
                 }
 
-                if (!AngelGates.canAccessPortal(player, portal, deny)) {
+                if (!canUsePortal(player, portal, deny)) {
                     AngelGates.sendMessage(player, AngelGates.getString("denyMsg"));
                     return;
                 }
@@ -370,13 +337,16 @@ public class BukkitListener implements Listener {
         if (event.isCancelled()) {
             return;
         }
+        
         Player player = event.getPlayer();
         Block block = event.getBlock();
+        
         if (block.getType() != Material.WALL_SIGN) {
             return;
         }
 
         final Portal portal = Portal.createPortal(event, player);
+        
         // Not creating a gate, just placing a sign
         if (portal == null) {
             return;
@@ -384,6 +354,7 @@ public class BukkitListener implements Listener {
 
         AngelGates.sendMessage(player, AngelGates.getString("createMsg"), false);
         AngelGates.debug("onSignChange", "Initialized AngelGate: " + portal.getName());
+        
         AngelGates.server.getScheduler().scheduleSyncDelayedTask(AngelGates.self, new Runnable() {
             public void run() {
                 portal.drawSign();
@@ -436,7 +407,7 @@ public class BukkitListener implements Listener {
         if (cost != 0) {
             if (!AngelGates.chargePlayer(player, null, cost)) {
                 AngelGates.debug("onBlockBreak", "Insufficient Funds");
-                AngelGates.sendMessage(player, AngelGates.getString("inFunds"));
+                AngelGates.sendMessage(player, AngelGates.getString("ecoInFunds"));
                 event.setCancelled(true);
                 return;
             }

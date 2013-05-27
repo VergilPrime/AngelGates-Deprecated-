@@ -22,8 +22,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
  * @author import
  */
 public class Networks {
-
-    
     public static class Network {
         private String name;
         private String owner;
@@ -69,34 +67,59 @@ public class Networks {
         }
     }
     
-    private Map<String, Network> networks = new HashMap<String, Network>();
+    private static Map<String, Network> networks = new HashMap<String, Network>();
+    private static Map<String, Integer> playerNetworkLimit = new HashMap<String, Integer>();
     
-    public Network add(String name, String owner) {
+    public static int getNetworkLimit(String player) {
+        if (!playerNetworkLimit.containsKey(player.toLowerCase())) {
+            return AngelGates.defaultNetsPerPlayer;
+        }
+        
+        return playerNetworkLimit.get(player.toLowerCase());
+    }
+    
+    public static void setNetworkLimit(String player, int limit) {
+        playerNetworkLimit.put(player.toLowerCase(), limit);
+    }
+    
+    public static Set<Network> getOwnedNetworks(String player) {
+        Set<Network> retn = new HashSet<Network>();
+        
+        for (Network net : networks.values()) {
+            if (net.getOwner().equalsIgnoreCase(player)) {
+                retn.add(net);
+            }
+        }
+        
+        return retn;
+    }
+    
+    public static Network add(String name, String owner) {
         Network net = new Network(name, owner);
         networks.put(name.toLowerCase(), net);
         
         return net;
     }
     
-    public Network add(Network net) {
+    public static Network add(Network net) {
         networks.put(net.getName().toLowerCase(), net);
         
         return net;
     }
     
-    public Map<String, Network> get() {
+    public static Map<String, Network> get() {
         return Collections.unmodifiableMap(networks);
     }
     
-    public Network get(String net) {
+    public static Network get(String net) {
         return networks.get(net.toLowerCase());
     }
     
-    public boolean has(String net) {
+    public static boolean has(String net) {
         return networks.containsKey(net.toLowerCase());
     }
     
-    public void load(String dir) {
+    public static void load(String dir) {
         File config = new File(dir, "networks.yml");
         YamlConfiguration yaml = new YamlConfiguration();
         
@@ -136,7 +159,7 @@ public class Networks {
         }
     }
     
-    public void save(String dir) {
+    public static void save(String dir) {
         File config = new File(dir, "networks.yml");
         YamlConfiguration yaml = new YamlConfiguration();
         try {
@@ -166,15 +189,14 @@ public class Networks {
     }
     
     public static void main(String[] args) {
-        Networks nets = new Networks();
-        nets.load(".");
-        for (Network net : nets.get().values()) {
+        Networks.load(".");
+        for (Network net : Networks.get().values()) {
             System.out.println(net + ", owned by " + net.getOwner());
             System.out.println("Members: " + net.getMembers());
         }
-        nets.add("Test1", "Me!");
-        Network net = nets.get("test1");
+        Networks.add("Test1", "Me!");
+        Network net = Networks.get("test1");
         net.addMember("__import__");
-        nets.save(".");
+        Networks.save(".");
     }
 }

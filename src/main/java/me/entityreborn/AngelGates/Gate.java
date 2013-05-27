@@ -38,6 +38,7 @@ public class Gate {
     public static final int ENTRANCE = -2;
     public static final int CONTROL = -3;
     public static final int EXIT = -4;
+    public static final int REDSTONE = -5;
     private static HashMap<String, Gate> gates = new HashMap<String, Gate>();
     private static HashMap<Integer, ArrayList<Gate>> controlBlocks = new HashMap<Integer, ArrayList<Gate>>();
     private static HashSet<Integer> frameBlocks = new HashSet<Integer>();
@@ -121,16 +122,20 @@ public class Gate {
 
             writeConfig(bw, "portal-open", portalBlockOpen);
             writeConfig(bw, "portal-closed", portalBlockClosed);
+            
             if (useCost != -1) {
-                writeConfig(bw, "usecost", useCost);
+                writeConfig(bw, "use-cost", useCost);
             }
+            
             if (createCost != -1) {
-                writeConfig(bw, "createcost", createCost);
+                writeConfig(bw, "create-cost", createCost);
             }
+            
             if (destroyCost != -1) {
-                writeConfig(bw, "destroycost", destroyCost);
+                writeConfig(bw, "destroy-cost", destroyCost);
             }
-            writeConfig(bw, "toowner", toOwner);
+            
+            writeConfig(bw, "pay-owner", toOwner);
 
             for (Character type : types.keySet()) {
                 Integer value = types.get(type);
@@ -419,10 +424,10 @@ public class Gate {
 
         gate.portalBlockOpen = readConfig(config, gate, file, "portal-open", gate.portalBlockOpen);
         gate.portalBlockClosed = readConfig(config, gate, file, "portal-closed", gate.portalBlockClosed);
-        gate.useCost = readConfig(config, gate, file, "usecost", -1);
-        gate.destroyCost = readConfig(config, gate, file, "destroycost", -1);
-        gate.createCost = readConfig(config, gate, file, "createcost", -1);
-        gate.toOwner = (config.containsKey("toowner") ? Boolean.valueOf(config.get("toowner")) : EconomyHandler.toOwner);
+        gate.useCost = readConfig(config, gate, file, "use-cost", -1);
+        gate.destroyCost = readConfig(config, gate, file, "destroy-cost", -1);
+        gate.createCost = readConfig(config, gate, file, "create-cost", -1);
+        gate.toOwner = (config.containsKey("pay-owner") ? Boolean.valueOf(config.get("pay-owner")) : EconomyHandler.payOwner);
 
         if (gate.getControls().length != 2) {
             AngelGates.log.log(Level.SEVERE, "Could not load Gate " + file.getName() + " - Gates must have exactly 2 control points.");
