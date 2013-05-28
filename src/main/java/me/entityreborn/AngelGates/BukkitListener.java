@@ -217,9 +217,11 @@ public class BukkitListener implements Listener {
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK || event.getAction() == Action.RIGHT_CLICK_AIR) {
             if (block.getType() == Material.WALL_SIGN) {
                 Portal portal = Portal.getByBlock(block);
+                
                 if (portal == null) {
                     return;
                 }
+                
                 // Cancel item use
                 event.setUseItemInHand(Event.Result.DENY);
                 event.setUseInteractedBlock(Event.Result.DENY);

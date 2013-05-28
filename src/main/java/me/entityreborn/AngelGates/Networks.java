@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -42,8 +43,16 @@ public class Networks {
         }
         
         public boolean isMember(String name) {
-            if (name.equalsIgnoreCase(owner) || members.contains(name.toLowerCase())) {
+            if (isOwner(name) || members.contains(name.toLowerCase())) {
                 return true;
+            }
+            
+            if (AngelGates.permissions != null) {
+                for (String group : AngelGates.permissions.getPlayerGroups(Bukkit.getPlayer(name))) {
+                    if (members.contains("g:" + group.toLowerCase())) {
+                        return true;
+                    }
+                }
             }
             
             return false;
@@ -55,6 +64,18 @@ public class Networks {
         
         public String getOwner() {
             return owner;
+        }
+        
+        public boolean isOwner(String name) {
+            if (AngelGates.permissions != null) {
+                for (String group : AngelGates.permissions.getPlayerGroups(Bukkit.getPlayer(name))) {
+                    if (owner.equalsIgnoreCase("g:" + group.toLowerCase())) {
+                        return true;
+                    }
+                }
+            }
+            
+            return name.equalsIgnoreCase(owner);
         }
         
         public String getName() {
@@ -90,7 +111,7 @@ public class Networks {
         Set<Network> retn = new HashSet<Network>();
         
         for (Network net : networks.values()) {
-            if (net.getOwner().equalsIgnoreCase(player)) {
+            if (net.isOwner(player)) {
                 retn.add(net);
             }
         }

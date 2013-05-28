@@ -11,6 +11,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import me.entityreborn.AngelGates.Networks.Network;
 import me.entityreborn.AngelGates.events.AngelGatesAccessEvent;
+import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Server;
@@ -23,6 +24,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -44,7 +46,7 @@ import org.bukkit.plugin.java.JavaPlugin;
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 public class AngelGates extends JavaPlugin {
-
+    public static Permission permissions = null;
     public static Logger log;
     public static Plugin self;
     public static Server server;
@@ -79,6 +81,16 @@ public class AngelGates extends JavaPlugin {
         } else {
             log.log(Level.FINEST, "[AngelGate::" + rout + "] " + msg);
         }
+    }
+    
+    private boolean setupPermissions() {
+        RegisteredServiceProvider<Permission> permissionProvider = getServer().getServicesManager().getRegistration(Permission.class);
+        
+        if (permissionProvider != null) {
+            permissions = permissionProvider.getProvider();
+        }
+        
+        return permissions != null;
     }
 
     public static void sendMessage(CommandSender player, String message) {
@@ -155,6 +167,10 @@ public class AngelGates extends JavaPlugin {
      * Check whether the player has the given permissions.
      */
     public static boolean hasPerm(CommandSender sender, String perm) {
+        if (permissions != null) {
+            return permissions.has(sender, perm);
+        }
+        
         return sender.hasPermission(perm);
     }
 
@@ -329,6 +345,12 @@ public class AngelGates extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        try {
+            setupPermissions();
+        } catch (Exception ex) {
+            log.log(Level.SEVERE, "Error while setting up perms!", ex);
+        }
+        
         PluginDescriptionFile pdfFile = this.getDescription();
         self = this;
         server = getServer();
@@ -495,7 +517,7 @@ public class AngelGates extends JavaPlugin {
                 return true;
             }
             
-            if (!network.getOwner().equalsIgnoreCase(sender.getName()) &&
+            if (!network.isOwner(sender.getName()) &&
                     !hasPerm(sender, "angelgates.commands") &&
                     !hasPerm(sender, "angelgates.commands.addmember")) {
                 sendMessage(sender, "Permission Denied");
@@ -503,7 +525,7 @@ public class AngelGates extends JavaPlugin {
                 return true;
             }
             
-            if (Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+            if (!other.startsWith("g:") && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
                 sendMessage(sender, other + " has never joined this server!");
                 
                 return true;
@@ -536,7 +558,7 @@ public class AngelGates extends JavaPlugin {
                 return true;
             }
             
-            if (!network.getOwner().equalsIgnoreCase(sender.getName()) &&
+            if (!network.isOwner(sender.getName()) &&
                     !hasPerm(sender, "angelgates.commands") &&
                     !hasPerm(sender, "angelgates.commands.remmember")) {
                 sendMessage(sender, "Permission denied", true);
@@ -544,7 +566,7 @@ public class AngelGates extends JavaPlugin {
                 return true;
             }
             
-            if (Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+            if (!other.startsWith("g:") && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
                 sendMessage(sender, other + " has never joined this server");
                 
                 return true;
@@ -577,7 +599,7 @@ public class AngelGates extends JavaPlugin {
                 return true;
             }
             
-            if (!network.getOwner().equalsIgnoreCase(sender.getName()) &&
+            if (!network.isOwner(sender.getName()) &&
                     !hasPerm(sender, "angelgates.commands") &&
                     !hasPerm(sender, "angelgates.commands.setowner")) {
                 sendMessage(sender, "Permission denied");
@@ -585,19 +607,19 @@ public class AngelGates extends JavaPlugin {
                 return true;
             }
             
-            if (Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+            if (!other.startsWith("g:") && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
                 sendMessage(sender, other + " has never joined this server");
                 
                 return true;
             }
             
-            if (!network.isMember(other)) {
+            if (!other.startsWith("g:") && !network.isMember(other)) {
                 sendMessage(sender, other + " must be a member of this network to become owner!");
                 
                 return true;
             }
             
-            if (sender.getName().equalsIgnoreCase(network.getOwner())) {
+            if (network.isOwner(sender.getName())) {
                 sendMessage(sender, other + " has been set as network owner! You have been demoted to member.", false);
             } else {
                 sendMessage(sender, other + " has been set as network owner! " + network.getOwner() + " has been demoted to member.", false);
@@ -693,7 +715,7 @@ public class AngelGates extends JavaPlugin {
         
         String other = args[1];
         
-        if (Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+        if (!other.startsWith("g:") && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
             sendMessage(sender, other + " has never joined this server");
 
             return true;
