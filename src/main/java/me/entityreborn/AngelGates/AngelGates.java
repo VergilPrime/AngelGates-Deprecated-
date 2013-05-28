@@ -717,34 +717,30 @@ public class AngelGates extends JavaPlugin {
         String cmd = command.getName();
         
         if (cmd.equalsIgnoreCase("ag") && args.length > 0) {
-            if (sender instanceof Player) {
-                Player player = (Player) sender;
+            Player player = (Player) sender;
                 
-                if (args[0].equalsIgnoreCase("info")) {
-                    return onCmdInfo(player, args);
-                }
-                
-                if (args[0].equalsIgnoreCase("reload")) {
-                    return onCmdReload(player, args);
-                }
-                
-                if (args[0].equalsIgnoreCase("addmember")) {
-                    return onCmdAddMember(player, args);
-                }
-                
-                if (args[0].equalsIgnoreCase("remmember")) {
-                    return onCmdRemMember(player, args);
-                }
-                
-                if (args[0].equalsIgnoreCase("setowner")) {
-                    return onCmdSetOwner(player, args);
-                }
-                
-                if (args[0].equalsIgnoreCase("setnetworks")) {
-                    return onCmdSetNetworks(player, args);
-                }
+            if (args[0].equalsIgnoreCase("info")) {
+                return onCmdInfo(player, args);
+            }
 
-                return false;
+            if (args[0].equalsIgnoreCase("reload")) {
+                return onCmdReload(player, args);
+            }
+
+            if (args[0].equalsIgnoreCase("addmember")) {
+                return onCmdAddMember(player, args);
+            }
+
+            if (args[0].equalsIgnoreCase("remmember")) {
+                return onCmdRemMember(player, args);
+            }
+
+            if (args[0].equalsIgnoreCase("setowner")) {
+                return onCmdSetOwner(player, args);
+            }
+
+            if (args[0].equalsIgnoreCase("setnetworks")) {
+                return onCmdSetNetworks(player, args);
             }
 
             return false;

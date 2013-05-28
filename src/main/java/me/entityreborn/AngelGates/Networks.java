@@ -136,45 +136,63 @@ public class Networks {
             return;
         }
         
-        for(String key : yaml.getKeys(false)) {
-            if (!yaml.isConfigurationSection(key)) {
-                continue;
-            }
-            
-            ConfigurationSection netconfig = yaml.getConfigurationSection(key);
-            
-            if (!netconfig.isString("owner")) {
-                AngelGates.log.warning("'owner' for network '" + key + "' is malformed. Skipping network!");
-                continue;
-            }
-            
-            String owner = netconfig.getString("owner");
-            Network net = new Network(key, owner);
-            
-            if (netconfig.isList("members")) {
-                List<String> members = netconfig.getStringList("members");
-                
-                for(String member : members) {
-                    net.addMember(member);
+        if (yaml.contains("users") && yaml.isConfigurationSection("users")) {
+            ConfigurationSection limits = yaml.getConfigurationSection("users");
+        
+            for(String user : limits.getKeys(false)) {
+                if (!limits.isConfigurationSection(user)) {
+                    continue;
+                }
+
+                ConfigurationSection sect = limits.getConfigurationSection(user);
+
+                if (sect.isInt("netlimit")) {
+                    playerNetworkLimit.put(user.toLowerCase(), sect.getInt("netlimit"));
+                } else if (sect.contains("netlimit")) {
+                    AngelGates.log.warning("'netlimit' for user '" + user + "' is malformed. Ignoring!");
                 }
             }
-            
-            networks.put(key.toLowerCase(), net);
+        }
+        
+        if (yaml.contains("networks") && yaml.isConfigurationSection("networks")) {
+            ConfigurationSection nets = yaml.getConfigurationSection("networks");
+
+            for(String nkey : nets.getKeys(false)) {
+                if (!nets.isConfigurationSection(nkey)) {
+                    continue;
+                }
+
+                ConfigurationSection sect = nets.getConfigurationSection(nkey);
+
+                if (!sect.isString("owner")) {
+                    AngelGates.log.warning("'owner' for network '" + nkey + "' is malformed. Skipping network!");
+                    continue;
+                }
+
+                String owner = sect.getString("owner");
+                Network net = new Network(nkey, owner);
+
+                if (sect.isList("members")) {
+                    List<String> members = sect.getStringList("members");
+
+                    for(String member : members) {
+                        net.addMember(member);
+                    }
+                }
+
+                networks.put(nkey.toLowerCase(), net);
+            }
         }
     }
     
     public static void save(String dir) {
         File config = new File(dir, "networks.yml");
         YamlConfiguration yaml = new YamlConfiguration();
-        try {
-            yaml.load(config);
-        } catch (Exception ex) {
-            // This is fine, whatever.
-        }
+        
+        ConfigurationSection netsect = yaml.createSection("networks");
         
         for (Network net: networks.values()) {
-            yaml.createSection(net.getName());
-            ConfigurationSection sect = yaml.getConfigurationSection(net.getName());
+            ConfigurationSection sect = netsect.createSection(net.getName());
             
             sect.set("owner", net.getOwner());
             
@@ -183,24 +201,34 @@ public class Networks {
             }
         }
         
+        ConfigurationSection usersect = yaml.createSection("users");
+        
+        for (String user: playerNetworkLimit.keySet()) {
+            ConfigurationSection sect = usersect.createSection(user);
+            
+            sect.set("netlimit", getNetworkLimit(user));
+        }
         
         try {
             yaml.save(config);
         } catch (Exception ex) {
-            AngelGates.log.log(Level.SEVERE, "Could not save network database!", ex);
+            AngelGates.log.log(Level.SEVERE, "Could not save network/userlimit database!", ex);
             return;
         }
     }
     
     public static void main(String[] args) {
         Networks.load(".");
+        
         for (Network net : Networks.get().values()) {
             System.out.println(net + ", owned by " + net.getOwner());
             System.out.println("Members: " + net.getMembers());
         }
+        
         Networks.add("Test1", "Me!");
         Network net = Networks.get("test1");
         net.addMember("__import__");
+        
         Networks.save(".");
     }
 }
