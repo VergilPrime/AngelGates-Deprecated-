@@ -80,12 +80,11 @@ public class Portal {
     private boolean verified;
     private boolean fixed;
     // In-use information
-    private Player player;
     private Player activePlayer;
     private ArrayList<String> destinations = new ArrayList<String>();
     private boolean isOpen = false;
     private long openTime;
-    private boolean free;
+    private long firstEntered;
 
     private Portal(Blox topLeft, int modX, int modZ,
             float rotX, Blox id, Blox button,
@@ -139,6 +138,10 @@ public class Portal {
 
     public long getOpenTime() {
         return openTime;
+    }
+    
+    public long getFirstEnteredTime() {
+        return firstEntered;
     }
 
     public String getName() {
@@ -251,6 +254,7 @@ public class Portal {
         if (event.isCancelled()) {
             return false;
         }
+        
         force = event.getForce();
 
         if (isOpen() && !force) {
@@ -269,8 +273,6 @@ public class Portal {
         AngelGates.openList.add(this);
         AngelGates.activeList.remove(this);
 
-        player = openFor;
-
         Portal end = getDestination();
         // Only open dest if it's not-fixed or points at this gate
         if (end != null && (!end.isFixed() || end.getDestinationName().equalsIgnoreCase(getName())) && !end.isOpen()) {
@@ -280,6 +282,8 @@ public class Portal {
                 end.drawSign();
             }
         }
+        
+        firstEntered = 0;
 
         return true;
     }
@@ -304,8 +308,7 @@ public class Portal {
         for (Blox inside : getEntrances()) {
             AngelGates.blockPopulatorQueue.add(new BloxPopulator(inside, closedType));
         }
-
-        player = null;
+        
         isOpen = false;
         AngelGates.openList.remove(this);
         AngelGates.activeList.remove(this);
@@ -365,6 +368,10 @@ public class Portal {
             // The new method to teleport in a move event is set the "to" field.
             event.setTo(exit);
         }
+        
+        if (firstEntered == 0) {
+            firstEntered = System.currentTimeMillis() / 1000;
+        }
     }
 
     public void teleport(final Vehicle vehicle) {
@@ -415,6 +422,10 @@ public class Portal {
             mc.setVelocity(newVelocity);
             vehicle.remove();
         }
+        
+        if (firstEntered == 0) {
+            firstEntered = System.currentTimeMillis() / 1000;
+        }
     }
 
     public Location getExit(Location traveller) {
@@ -463,7 +474,7 @@ public class Portal {
     }
 
     public ArrayList<String> getDestinations(Player player, String network) {
-        ArrayList<String> destinations = new ArrayList<String>();
+        ArrayList<String> dests = new ArrayList<String>();
         for (String dest : allPortalsNet.get(network.toLowerCase())) {
             Portal portal = getByName(dest, network);
 
@@ -476,12 +487,12 @@ public class Portal {
             }
             // Allow random use by non-players (Minecarts)
             if (player == null) {
-                destinations.add(portal.getName());
+                dests.add(portal.getName());
                 continue;
             }
-            destinations.add(portal.getName());
+            dests.add(portal.getName());
         }
-        return destinations;
+        return dests;
     }
 
     public boolean activate(Player player) {

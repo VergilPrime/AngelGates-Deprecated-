@@ -58,6 +58,7 @@ public class AngelGates extends JavaPlugin {
     private static String langName = "en";
     private static int activeTime = 10;
     private static int openTime = 10;
+    private static long stayOpenTime = 2;
     public static boolean rememberLastDest = false;
     public static boolean handleVehicles = true;
     public static boolean sortLists = false;
@@ -71,7 +72,7 @@ public class AngelGates extends JavaPlugin {
     public static ConcurrentLinkedQueue<Portal> activeList = new ConcurrentLinkedQueue<Portal>();
     // Used for populating gate open/closed material.
     public static Queue<BloxPopulator> blockPopulatorQueue = new LinkedList<BloxPopulator>();
-
+    
     public static void debug(String rout, String msg) {
         if (AngelGates.debug) {
             log.info("[AngelGate::" + rout + "] " + msg);
@@ -433,8 +434,8 @@ public class AngelGates extends JavaPlugin {
     }
 
     public boolean onCmdReload(CommandSender sender, String[] args) {
-        if (!hasPerm(sender, "angelgates.admin")
-                && !hasPerm(sender, "angelgates.admin.reload")) {
+        if (!hasPerm(sender, "angelgates.commands")
+                && !hasPerm(sender, "angelgates.commands.reload")) {
             sendMessage(sender, "Permission Denied");
 
             return true;
@@ -495,8 +496,8 @@ public class AngelGates extends JavaPlugin {
             }
             
             if (!network.getOwner().equalsIgnoreCase(sender.getName()) &&
-                    !hasPerm(sender, "angelgates.admin") &&
-                    !hasPerm(sender, "angelgates.admin.addmember")) {
+                    !hasPerm(sender, "angelgates.commands") &&
+                    !hasPerm(sender, "angelgates.commands.addmember")) {
                 sendMessage(sender, "Permission Denied");
                 
                 return true;
@@ -536,8 +537,8 @@ public class AngelGates extends JavaPlugin {
             }
             
             if (!network.getOwner().equalsIgnoreCase(sender.getName()) &&
-                    !hasPerm(sender, "angelgates.admin") &&
-                    !hasPerm(sender, "angelgates.admin.remmember")) {
+                    !hasPerm(sender, "angelgates.commands") &&
+                    !hasPerm(sender, "angelgates.commands.remmember")) {
                 sendMessage(sender, "Permission denied", true);
                 
                 return true;
@@ -577,8 +578,8 @@ public class AngelGates extends JavaPlugin {
             }
             
             if (!network.getOwner().equalsIgnoreCase(sender.getName()) &&
-                    !hasPerm(sender, "angelgates.admin") &&
-                    !hasPerm(sender, "angelgates.admin.setowner")) {
+                    !hasPerm(sender, "angelgates.commands") &&
+                    !hasPerm(sender, "angelgates.commands.setowner")) {
                 sendMessage(sender, "Permission denied");
                 
                 return true;
@@ -596,8 +597,13 @@ public class AngelGates extends JavaPlugin {
                 return true;
             }
             
+            if (sender.getName().equalsIgnoreCase(network.getOwner())) {
+                sendMessage(sender, other + " has been set as network owner! You have been demoted to member.", false);
+            } else {
+                sendMessage(sender, other + " has been set as network owner! " + network.getOwner() + " has been demoted to member.", false);
+            }
+            
             network.setOwner(other);
-            sendMessage(sender, other + " has been set as network owner! You have been demoted to member.", false);
             
             return true;
         }
@@ -638,7 +644,7 @@ public class AngelGates extends JavaPlugin {
     private boolean onCmdInfo(CommandSender sender, String[] args) {
         String name = sender.getName();
         
-        if (!(sender instanceof Player) && args.length < 1) {
+        if (!(sender instanceof Player) && args.length < 2) {
             sendMessage(sender, "You must specify a player's name");
             return true;
         }
@@ -674,14 +680,8 @@ public class AngelGates extends JavaPlugin {
     }
     
     private boolean onCmdSetNetworks(CommandSender sender, String[] args) {
-        Player player = null;
-        
-        if (sender instanceof Player) {
-            player = (Player) sender;
-        }
-        
-        if (!hasPerm(sender, "angelgates.admin") &&
-                !hasPerm(sender, "angelgates.admin.setnetworks")) {
+        if (!hasPerm(sender, "angelgates.commands") &&
+                !hasPerm(sender, "angelgates.commands.setnetworks")) {
             sendMessage(sender, "Permission denied");
 
             return true;
@@ -731,7 +731,7 @@ public class AngelGates extends JavaPlugin {
                 return onCmdInfo(sender, args);
             }
             
-            if (args[0].equalsIgnoreCase("info")) {
+            if (args[0].equalsIgnoreCase("netinfo")) {
                 return onCmdNetInfo(sender, args);
             }
 
@@ -762,9 +762,9 @@ public class AngelGates extends JavaPlugin {
     }
 
     private class BlockPopulatorThread implements Runnable {
-
         public void run() {
             long sTime = System.nanoTime();
+            
             while (System.nanoTime() - sTime < 50000000) {
                 BloxPopulator b = AngelGates.blockPopulatorQueue.poll();
                 if (b == null) {
@@ -777,26 +777,38 @@ public class AngelGates extends JavaPlugin {
     }
 
     private class SGThread implements Runnable {
-
         public void run() {
             long time = System.currentTimeMillis() / 1000;
+            
             // Close open portals
             for (Iterator<Portal> iter = AngelGates.openList.iterator(); iter.hasNext();) {
                 Portal p = iter.next();
+                
                 if (!p.isOpen()) {
+                    iter.remove();
                     continue;
                 }
-                if (time > p.getOpenTime() + AngelGates.openTime) {
+                
+                if (p.getFirstEnteredTime() == 0 && time > p.getOpenTime() + AngelGates.openTime) {
+                    p.close(false);
+                    iter.remove();
+                }
+                
+                if (p.getFirstEnteredTime() != 0 && time > p.getFirstEnteredTime() + AngelGates.stayOpenTime) {
                     p.close(false);
                     iter.remove();
                 }
             }
+            
             // Deactivate active portals
             for (Iterator<Portal> iter = AngelGates.activeList.iterator(); iter.hasNext();) {
                 Portal p = iter.next();
+                
                 if (!p.isActive()) {
+                    iter.remove();
                     continue;
                 }
+                
                 if (time > p.getOpenTime() + AngelGates.activeTime) {
                     p.deactivate();
                     iter.remove();

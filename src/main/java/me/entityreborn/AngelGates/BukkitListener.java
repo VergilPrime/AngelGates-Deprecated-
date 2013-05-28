@@ -71,7 +71,6 @@ public class BukkitListener implements Listener {
 
             if (!canUsePortal(player, portal, false)) {
                 AngelGates.sendMessage(player, AngelGates.getString("denyMsg"));
-                portal.close(false);
                 return;
             }
 
@@ -81,7 +80,6 @@ public class BukkitListener implements Listener {
                 if (!AngelGates.chargePlayer(player, target, cost)) {
                     // Insufficient Funds
                     AngelGates.sendMessage(player, AngelGates.getString("ecoInFunds"));
-                    portal.close(false);
                     return;
                 }
                 String deductMsg = AngelGates.getString("ecoDeduct");
@@ -99,7 +97,6 @@ public class BukkitListener implements Listener {
 
             AngelGates.sendMessage(player, AngelGates.getString("teleportMsg"), false);
             dest.teleport(vehicle);
-            portal.close(false);
         } else {
             Portal dest = portal.getDestination();
             if (dest == null) {
@@ -167,7 +164,6 @@ public class BukkitListener implements Listener {
         if (!canUsePortal(player, portal, false)) {
             AngelGates.sendMessage(player, AngelGates.getString("denyMsg"));
             portal.teleport(player, portal, event);
-            portal.close(false);
             return;
         }
 
@@ -177,7 +173,6 @@ public class BukkitListener implements Listener {
             if (!AngelGates.chargePlayer(player, target, cost)) {
                 // Insufficient Funds
                 AngelGates.sendMessage(player, "Insufficient Funds");
-                portal.close(false);
                 return;
             }
             String deductMsg = AngelGates.getString("ecoDeduct");
@@ -196,7 +191,6 @@ public class BukkitListener implements Listener {
         AngelGates.sendMessage(player, AngelGates.getString("teleportMsg"), false);
 
         destination.teleport(player, portal, event);
-        portal.close(false);
     }
 
     @EventHandler
