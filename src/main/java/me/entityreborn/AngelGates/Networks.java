@@ -65,6 +65,10 @@ public class Networks {
         public String toString() {
             return name.toLowerCase();
         }
+
+        void setOwner(String other) {
+            owner = other.toLowerCase();
+        }
     }
     
     private static Map<String, Network> networks = new HashMap<String, Network>();
@@ -91,7 +95,7 @@ public class Networks {
             }
         }
         
-        return retn;
+        return Collections.unmodifiableSet(retn);
     }
     
     public static Network add(String name, String owner) {

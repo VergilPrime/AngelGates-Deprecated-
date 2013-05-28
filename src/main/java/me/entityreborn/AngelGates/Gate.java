@@ -118,7 +118,10 @@ public class Gate {
 
     public void save(String gateFolder) {
         try {
-            BufferedWriter bw = new BufferedWriter(new FileWriter(gateFolder + filename));
+            File fname = new File(gateFolder, filename);
+            fname.getParentFile().mkdirs();
+            
+            BufferedWriter bw = new BufferedWriter(new FileWriter(fname));
 
             writeConfig(bw, "portal-open", portalBlockOpen);
             writeConfig(bw, "portal-closed", portalBlockClosed);

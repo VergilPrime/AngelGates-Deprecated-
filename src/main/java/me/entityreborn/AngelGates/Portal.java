@@ -974,7 +974,8 @@ public class Portal {
     }
 
     public static void saveAllGates(World world) {
-        String loc = AngelGates.getSaveLocation() + "/" + world.getName() + ".db";
+        File loc = new File(AngelGates.getSaveLocation(), world.getName() + ".db");
+        loc.getParentFile().mkdirs();
 
         try {
             BufferedWriter bw = new BufferedWriter(new FileWriter(loc, false));

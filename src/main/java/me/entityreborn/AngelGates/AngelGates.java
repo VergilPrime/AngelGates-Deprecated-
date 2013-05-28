@@ -5,10 +5,13 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import me.entityreborn.AngelGates.Networks.Network;
 import me.entityreborn.AngelGates.events.AngelGatesAccessEvent;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Server;
 import org.bukkit.World;
@@ -155,30 +158,16 @@ public class AngelGates extends JavaPlugin {
     }
 
     /*
-     * Check a deep permission, this will check to see if the permissions is defined for this use
-     * If using Permissions it will return the same as hasPerm
-     * If using SuperPerms will return true if the node isn't defined
-     * Or the value of the node if it is
-     */
-    public static boolean hasPermDeep(Player player, String perm) {
-        if (!player.isPermissionSet(perm)) {
-            return true;
-        }
-        
-        return player.hasPermission(perm);
-    }
-    
-    /*
      * Call the AngelGateAccessPortal event, used for other plugins to bypass Permissions checks
      */
     public static boolean canUsePortal(Player player, Portal portal, boolean deny) {
         AngelGatesAccessEvent event = new AngelGatesAccessEvent(player, portal, deny);
         AngelGates.server.getPluginManager().callEvent(event);
-        
+
         if (event.getDeny()) {
             return false;
         }
-        
+
         return true;
     }
 
@@ -187,19 +176,19 @@ public class AngelGates extends JavaPlugin {
      */
     public static boolean canCreate(Player player, String network) {
         // Check for general create
-        if (hasPerm(player, "AngelGates.admin") || 
-                hasPerm(player, "AngelGates.admin.create")) {
+        if (hasPerm(player, "AngelGates.admin")
+                || hasPerm(player, "AngelGates.admin.create")) {
             return true;
         }
-        
+
         if (Networks.has(network)) {
             return Networks.get(network).isMember(player.getName());
         }
-        
+
         if (defaultNetsPerPlayer <= 0) {
             return true;
         }
-        
+
         if (Networks.getOwnedNetworks(network).size() < defaultNetsPerPlayer) {
             return true;
         }
@@ -215,11 +204,11 @@ public class AngelGates extends JavaPlugin {
         if (hasPerm(player, "AngelGates.admin")) {
             return true;
         }
-        
+
         if (portal.getNetwork().isMember(player.getName())) {
             return true;
         }
-        
+
         return false;
     }
 
@@ -311,15 +300,14 @@ public class AngelGates extends JavaPlugin {
         if (hasPerm(player, "AngelGates.admin")) {
             return true;
         }
-        
-        if (networkName.equalsIgnoreCase(defNetwork) ||
-                Networks.get(networkName).isMember(player.getName())) {
+
+        if (networkName.equalsIgnoreCase(defNetwork)
+                || Networks.get(networkName).isMember(player.getName())) {
             return true;
         }
-        
+
         return false;
     }
-    
     private FileConfiguration newConfig;
     private PluginManager pm;
 
@@ -433,63 +421,322 @@ public class AngelGates extends JavaPlugin {
         for (World world : getServer().getWorlds()) {
             Portal.loadAllGates(world);
         }
-        
+
         Networks.load(getDataFolder().getPath());
+    }
+
+    public boolean onCmdReload(Player player, String[] args) {
+        if (!hasPerm(player, "angelgates.admin")
+                && !hasPerm(player, "angelgates.admin.reload")) {
+            sendMessage(player, "Permission Denied");
+
+            return true;
+        }
+
+        // Deactivate portals
+        for (Portal p : activeList) {
+            p.deactivate();
+        }
+
+        // Close portals
+        for (Portal p : openList) {
+            p.close(true);
+        }
+        // Clear all lists
+        activeList.clear();
+        openList.clear();
+
+        Portal.clearGates();
+        Gate.clearGates();
+
+        // Reload data
+        loadConfig();
+        reloadGates();
+
+        lang.setLang(langName);
+        lang.reload();
+
+        // Load iConomy support if enabled/clear if disabled
+        if (EconomyHandler.useEconomy && EconomyHandler.economy == null) {
+            if (EconomyHandler.setupEconomy(pm)) {
+                if (EconomyHandler.economy != null) {
+                    log.info("Vault v" + EconomyHandler.vault.getDescription().getVersion() + " found");
+                }
+            }
+        }
+
+        if (!EconomyHandler.useEconomy) {
+            EconomyHandler.vault = null;
+            EconomyHandler.economy = null;
+        }
+
+        sendMessage(player, "AngelGate reloaded", false);
+
+        return true;
+    }
+    
+    private boolean onCmdAddMember(Player player, String[] args) {
+        if (args.length == 3) {
+            String net = args[1];
+            String other = args[2];
+            Network network = Networks.get(net);
+            
+            if (network == null) {
+                sendMessage(player, "Unknown network");
+                
+                return true;
+            }
+            
+            if (!network.getOwner().equalsIgnoreCase(player.getName()) &&
+                    !hasPerm(player, "angelgates.admin") &&
+                    !hasPerm(player, "angelgates.admin.addmember")) {
+                sendMessage(player, "Permission Denied");
+                
+                return true;
+            }
+            
+            if (Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+                sendMessage(player, other + " has never joined this server!");
+                
+                return true;
+            }
+            
+            if (network.isMember(other)) {
+                sendMessage(player, other + " is already a member of this network");
+                
+                return true;
+            }
+            
+            network.addMember(other);
+            sendMessage(player, other + " has been added to the network!", false);
+            
+            return true;
+        }
+        
+        return false;
+    }
+    
+    private boolean onCmdRemMember(Player player, String[] args) {
+        if (args.length == 3) {
+            String net = args[1];
+            String other = args[2];
+            Network network = Networks.get(net);
+            
+            if (network == null) {
+                sendMessage(player, "Unknown network");
+                
+                return true;
+            }
+            
+            if (!network.getOwner().equalsIgnoreCase(player.getName()) &&
+                    !hasPerm(player, "angelgates.admin") &&
+                    !hasPerm(player, "angelgates.admin.remmember")) {
+                sendMessage(player, "Permission denied", true);
+                
+                return true;
+            }
+            
+            if (Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+                sendMessage(player, other + " has never joined this server");
+                
+                return true;
+            }
+            
+            if (!network.isMember(other)) {
+                sendMessage(player, other + " is not a member of this network");
+                
+                return true;
+            }
+            
+            network.removeMember(other);
+            sendMessage(player, other + " has been removed from the network!", false);
+            
+            return true;
+        }
+        
+        return false;
+    }
+    
+    private boolean onCmdSetOwner(Player player, String[] args) {
+        if (args.length == 3) {
+            String net = args[1];
+            String other = args[2];
+            Network network = Networks.get(net);
+            
+            if (network == null) {
+                sendMessage(player, "Unknown network");
+                
+                return true;
+            }
+            
+            if (!network.getOwner().equalsIgnoreCase(player.getName()) &&
+                    !hasPerm(player, "angelgates.admin") &&
+                    !hasPerm(player, "angelgates.admin.setowner")) {
+                sendMessage(player, "Permission denied");
+                
+                return true;
+            }
+            
+            if (Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+                sendMessage(player, other + " has never joined this server");
+                
+                return true;
+            }
+            
+            if (!network.isMember(other)) {
+                sendMessage(player, other + " must be a member of this network to become owner!");
+                
+                return true;
+            }
+            
+            network.setOwner(other);
+            sendMessage(player, other + " has been set as network owner! You have been demoted to member.", false);
+            
+            return true;
+        }
+        
+        return false;
+    }
+    
+    private boolean onCmdNetInfo(Player player, String[] args) {
+        if (args.length == 2) {
+            String net = args[1];
+            Network network = Networks.get(net);
+            
+            if (network == null) {
+                sendMessage(player, "Unknown network");
+                
+                return true;
+            }
+            
+            sendMessage(player, "Name: " + network.getName());
+            sendMessage(player, "Owner: " + network.getOwner());
+            
+            StringBuilder sb = new StringBuilder();
+            boolean first = true;
+            for (String item : network.getMembers()){
+               if (first)
+                  first = false;
+               else
+                  sb.append(", ");
+               sb.append(item);
+            }
+            
+            sendMessage(player, "Members: " + sb.toString());
+            
+        } 
+        
+        return true;
+    }
+    
+    private boolean onCmdInfo(Player player, String[] args) {
+        String name = player.getName();
+        
+        if (args.length >= 2) {
+            name = args[1];
+            
+            if (Bukkit.getServer().getOfflinePlayer(name).getFirstPlayed() == 0) {
+                sendMessage(player, name + " has never joined this server");
+                return true;
+            }
+        }
+        
+        Set<Network> owned = Networks.getOwnedNetworks(name);
+        int limit = Networks.getNetworkLimit(name);
+        
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (Network item : Networks.getOwnedNetworks(name)){
+           if (first) {
+              first = false;
+           } else {
+              sb.append(", ");
+           }
+           
+           sb.append(item.getName());
+        }
+        
+        sendMessage(player, "Owned networks: " + sb.toString());
+        sendMessage(player, owned.size() + " networks of " + (limit > 0 ? limit : "unlimited") + " owned.", false);
+        
+        return true;
+    }
+    
+    private boolean onCmdSetNetworks(Player player, String[] args) {
+        if (!hasPerm(player, "angelgates.admin") &&
+                !hasPerm(player, "angelgates.admin.setnetworks")) {
+            sendMessage(player, "Permission denied");
+
+            return true;
+        }
+        
+        if (args.length != 3) {
+            return false;
+        }
+        
+        String other = args[1];
+        
+        if (Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+            sendMessage(player, other + " has never joined this server");
+
+            return true;
+        }
+        
+        String samount = args[2];
+        int i;
+        
+        try {
+            i = Integer.valueOf(samount);
+        } catch (IllegalArgumentException e) {
+            sendMessage(player, "Must specifiy integer for amount for second argument");
+            return true;
+        }
+        
+        Networks.setNetworkLimit(other, i);
+        
+        sendMessage(player, "Network limit for " + other + " set to " + i, false);
+        
+        return true;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         String cmd = command.getName();
-        if (cmd.equalsIgnoreCase("ag")) {
-            if (args.length != 1) {
+        
+        if (cmd.equalsIgnoreCase("ag") && args.length > 0) {
+            if (sender instanceof Player) {
+                Player player = (Player) sender;
+                
+                if (args[0].equalsIgnoreCase("info")) {
+                    return onCmdInfo(player, args);
+                }
+                
+                if (args[0].equalsIgnoreCase("reload")) {
+                    return onCmdReload(player, args);
+                }
+                
+                if (args[0].equalsIgnoreCase("addmember")) {
+                    return onCmdAddMember(player, args);
+                }
+                
+                if (args[0].equalsIgnoreCase("remmember")) {
+                    return onCmdRemMember(player, args);
+                }
+                
+                if (args[0].equalsIgnoreCase("setowner")) {
+                    return onCmdSetOwner(player, args);
+                }
+                
+                if (args[0].equalsIgnoreCase("setnetworks")) {
+                    return onCmdSetNetworks(player, args);
+                }
+
                 return false;
             }
-            if (sender instanceof Player) {
-                Player p = (Player) sender;
-                if (!hasPerm(p, "angelgates.admin") && !hasPerm(p, "angelgates.admin.reload")) {
-                    sendMessage(sender, "Permission Denied");
-                    return true;
-                }
-            }
-            if (args[0].equalsIgnoreCase("reload")) {
-                // Deactivate portals
-                for (Portal p : activeList) {
-                    p.deactivate();
-                }
-                // Close portals
-                for (Portal p : openList) {
-                    p.close(true);
-                }
-                // Clear all lists
-                activeList.clear();
-                openList.clear();
-                Portal.clearGates();
-                Gate.clearGates();
 
-                // Reload data
-                loadConfig();
-                reloadGates();
-                lang.setLang(langName);
-                lang.reload();
-
-                // Load iConomy support if enabled/clear if disabled
-                if (EconomyHandler.useEconomy && EconomyHandler.economy == null) {
-                    if (EconomyHandler.setupEconomy(pm)) {
-                        if (EconomyHandler.economy != null) {
-                            log.info("Vault v" + EconomyHandler.vault.getDescription().getVersion() + " found");
-                        }
-                    }
-                }
-                if (!EconomyHandler.useEconomy) {
-                    EconomyHandler.vault = null;
-                    EconomyHandler.economy = null;
-                }
-
-                sendMessage(sender, "AngelGate reloaded");
-                return true;
-            }
             return false;
         }
+
         return false;
     }
 

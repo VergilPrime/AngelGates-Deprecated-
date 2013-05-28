@@ -1,6 +1,6 @@
-name: AngelGate
+name: AngelGates
 main: me.entityreborn.AngelGates.AngelGates
-version: 0.7.9.9
+version: 0.7.9.10
 description: Custom gate mod for Bukkit
 authors: [Drakia, EntityReborn]
 website: http://www.thedgtl.net
