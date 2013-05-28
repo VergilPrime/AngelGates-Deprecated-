@@ -183,6 +183,7 @@ public class AngelGates extends JavaPlugin {
         
         if (network.equalsIgnoreCase(defNetwork)) {
             sendMessage(player, AngelGates.getString("createNetRestricted"));
+            return false;
         }
 
         if (Networks.has(network)) {
