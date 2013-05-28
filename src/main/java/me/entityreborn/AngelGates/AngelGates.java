@@ -153,8 +153,8 @@ public class AngelGates extends JavaPlugin {
     /*
      * Check whether the player has the given permissions.
      */
-    public static boolean hasPerm(Player player, String perm) {
-        return player.hasPermission(perm);
+    public static boolean hasPerm(CommandSender sender, String perm) {
+        return sender.hasPermission(perm);
     }
 
     /*
@@ -432,10 +432,10 @@ public class AngelGates extends JavaPlugin {
         Networks.load(getDataFolder().getPath());
     }
 
-    public boolean onCmdReload(Player player, String[] args) {
-        if (!hasPerm(player, "angelgates.admin")
-                && !hasPerm(player, "angelgates.admin.reload")) {
-            sendMessage(player, "Permission Denied");
+    public boolean onCmdReload(CommandSender sender, String[] args) {
+        if (!hasPerm(sender, "angelgates.admin")
+                && !hasPerm(sender, "angelgates.admin.reload")) {
+            sendMessage(sender, "Permission Denied");
 
             return true;
         }
@@ -477,45 +477,45 @@ public class AngelGates extends JavaPlugin {
             EconomyHandler.economy = null;
         }
 
-        sendMessage(player, "AngelGate reloaded", false);
+        sendMessage(sender, "AngelGate reloaded", false);
 
         return true;
     }
     
-    private boolean onCmdAddMember(Player player, String[] args) {
+    private boolean onCmdAddMember(CommandSender sender, String[] args) {
         if (args.length == 3) {
             String net = args[1];
             String other = args[2];
             Network network = Networks.get(net);
             
             if (network == null) {
-                sendMessage(player, "Unknown network");
+                sendMessage(sender, "Unknown network");
                 
                 return true;
             }
             
-            if (!network.getOwner().equalsIgnoreCase(player.getName()) &&
-                    !hasPerm(player, "angelgates.admin") &&
-                    !hasPerm(player, "angelgates.admin.addmember")) {
-                sendMessage(player, "Permission Denied");
+            if (!network.getOwner().equalsIgnoreCase(sender.getName()) &&
+                    !hasPerm(sender, "angelgates.admin") &&
+                    !hasPerm(sender, "angelgates.admin.addmember")) {
+                sendMessage(sender, "Permission Denied");
                 
                 return true;
             }
             
             if (Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
-                sendMessage(player, other + " has never joined this server!");
+                sendMessage(sender, other + " has never joined this server!");
                 
                 return true;
             }
             
             if (network.isMember(other)) {
-                sendMessage(player, other + " is already a member of this network");
+                sendMessage(sender, other + " is already a member of this network");
                 
                 return true;
             }
             
             network.addMember(other);
-            sendMessage(player, other + " has been added to the network!", false);
+            sendMessage(sender, other + " has been added to the network!", false);
             
             return true;
         }
@@ -523,40 +523,40 @@ public class AngelGates extends JavaPlugin {
         return false;
     }
     
-    private boolean onCmdRemMember(Player player, String[] args) {
+    private boolean onCmdRemMember(CommandSender sender, String[] args) {
         if (args.length == 3) {
             String net = args[1];
             String other = args[2];
             Network network = Networks.get(net);
             
             if (network == null) {
-                sendMessage(player, "Unknown network");
+                sendMessage(sender, "Unknown network");
                 
                 return true;
             }
             
-            if (!network.getOwner().equalsIgnoreCase(player.getName()) &&
-                    !hasPerm(player, "angelgates.admin") &&
-                    !hasPerm(player, "angelgates.admin.remmember")) {
-                sendMessage(player, "Permission denied", true);
+            if (!network.getOwner().equalsIgnoreCase(sender.getName()) &&
+                    !hasPerm(sender, "angelgates.admin") &&
+                    !hasPerm(sender, "angelgates.admin.remmember")) {
+                sendMessage(sender, "Permission denied", true);
                 
                 return true;
             }
             
             if (Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
-                sendMessage(player, other + " has never joined this server");
+                sendMessage(sender, other + " has never joined this server");
                 
                 return true;
             }
             
             if (!network.isMember(other)) {
-                sendMessage(player, other + " is not a member of this network");
+                sendMessage(sender, other + " is not a member of this network");
                 
                 return true;
             }
             
             network.removeMember(other);
-            sendMessage(player, other + " has been removed from the network!", false);
+            sendMessage(sender, other + " has been removed from the network!", false);
             
             return true;
         }
@@ -564,40 +564,40 @@ public class AngelGates extends JavaPlugin {
         return false;
     }
     
-    private boolean onCmdSetOwner(Player player, String[] args) {
+    private boolean onCmdSetOwner(CommandSender sender, String[] args) {
         if (args.length == 3) {
             String net = args[1];
             String other = args[2];
             Network network = Networks.get(net);
             
             if (network == null) {
-                sendMessage(player, "Unknown network");
+                sendMessage(sender, "Unknown network");
                 
                 return true;
             }
             
-            if (!network.getOwner().equalsIgnoreCase(player.getName()) &&
-                    !hasPerm(player, "angelgates.admin") &&
-                    !hasPerm(player, "angelgates.admin.setowner")) {
-                sendMessage(player, "Permission denied");
+            if (!network.getOwner().equalsIgnoreCase(sender.getName()) &&
+                    !hasPerm(sender, "angelgates.admin") &&
+                    !hasPerm(sender, "angelgates.admin.setowner")) {
+                sendMessage(sender, "Permission denied");
                 
                 return true;
             }
             
             if (Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
-                sendMessage(player, other + " has never joined this server");
+                sendMessage(sender, other + " has never joined this server");
                 
                 return true;
             }
             
             if (!network.isMember(other)) {
-                sendMessage(player, other + " must be a member of this network to become owner!");
+                sendMessage(sender, other + " must be a member of this network to become owner!");
                 
                 return true;
             }
             
             network.setOwner(other);
-            sendMessage(player, other + " has been set as network owner! You have been demoted to member.", false);
+            sendMessage(sender, other + " has been set as network owner! You have been demoted to member.", false);
             
             return true;
         }
@@ -605,19 +605,19 @@ public class AngelGates extends JavaPlugin {
         return false;
     }
     
-    private boolean onCmdNetInfo(Player player, String[] args) {
+    private boolean onCmdNetInfo(CommandSender sender, String[] args) {
         if (args.length == 2) {
             String net = args[1];
             Network network = Networks.get(net);
             
             if (network == null) {
-                sendMessage(player, "Unknown network");
+                sendMessage(sender, "Unknown network");
                 
                 return true;
             }
             
-            sendMessage(player, "Name: " + network.getName());
-            sendMessage(player, "Owner: " + network.getOwner());
+            sendMessage(sender, "Name: " + network.getName());
+            sendMessage(sender, "Owner: " + network.getOwner());
             
             StringBuilder sb = new StringBuilder();
             boolean first = true;
@@ -629,21 +629,25 @@ public class AngelGates extends JavaPlugin {
                sb.append(item);
             }
             
-            sendMessage(player, "Members: " + sb.toString());
-            
+            sendMessage(sender, "Members: " + sb.toString());
         } 
         
         return true;
     }
     
-    private boolean onCmdInfo(Player player, String[] args) {
-        String name = player.getName();
+    private boolean onCmdInfo(CommandSender sender, String[] args) {
+        String name = sender.getName();
+        
+        if (!(sender instanceof Player) && args.length < 1) {
+            sendMessage(sender, "You must specify a player's name");
+            return true;
+        }
         
         if (args.length >= 2) {
             name = args[1];
             
             if (Bukkit.getServer().getOfflinePlayer(name).getFirstPlayed() == 0) {
-                sendMessage(player, name + " has never joined this server");
+                sendMessage(sender, name + " has never joined this server");
                 return true;
             }
         }
@@ -663,16 +667,22 @@ public class AngelGates extends JavaPlugin {
            sb.append(item.getName());
         }
         
-        sendMessage(player, "Owned networks: " + sb.toString());
-        sendMessage(player, owned.size() + " networks of " + (limit > 0 ? limit : "unlimited") + " owned.", false);
+        sendMessage(sender, "Owned networks: " + sb.toString());
+        sendMessage(sender, owned.size() + " networks of " + (limit > 0 ? limit : "unlimited") + " owned.", false);
         
         return true;
     }
     
-    private boolean onCmdSetNetworks(Player player, String[] args) {
-        if (!hasPerm(player, "angelgates.admin") &&
-                !hasPerm(player, "angelgates.admin.setnetworks")) {
-            sendMessage(player, "Permission denied");
+    private boolean onCmdSetNetworks(CommandSender sender, String[] args) {
+        Player player = null;
+        
+        if (sender instanceof Player) {
+            player = (Player) sender;
+        }
+        
+        if (!hasPerm(sender, "angelgates.admin") &&
+                !hasPerm(sender, "angelgates.admin.setnetworks")) {
+            sendMessage(sender, "Permission denied");
 
             return true;
         }
@@ -684,7 +694,7 @@ public class AngelGates extends JavaPlugin {
         String other = args[1];
         
         if (Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
-            sendMessage(player, other + " has never joined this server");
+            sendMessage(sender, other + " has never joined this server");
 
             return true;
         }
@@ -695,19 +705,19 @@ public class AngelGates extends JavaPlugin {
         try {
             i = Integer.valueOf(samount);
         } catch (IllegalArgumentException e) {
-            sendMessage(player, "Must specifiy integer for amount for second argument");
+            sendMessage(sender, "Must specifiy integer for amount for second argument");
             return true;
         }
         
         if (i < 0) {
-            sendMessage(player, "Number must be 0 or more!");
+            sendMessage(sender, "Number must be 0 or more!");
 
             return true;
         }
         
         Networks.setNetworkLimit(other, i);
         
-        sendMessage(player, "Network limit for " + other + " set to " + (i != 0 ? i : "infinite"), false);
+        sendMessage(sender, "Network limit for " + other + " set to " + (i != 0 ? i : "infinite"), false);
         
         return true;
     }
@@ -717,30 +727,32 @@ public class AngelGates extends JavaPlugin {
         String cmd = command.getName();
         
         if (cmd.equalsIgnoreCase("ag") && args.length > 0) {
-            Player player = (Player) sender;
-                
             if (args[0].equalsIgnoreCase("info")) {
-                return onCmdInfo(player, args);
+                return onCmdInfo(sender, args);
+            }
+            
+            if (args[0].equalsIgnoreCase("info")) {
+                return onCmdNetInfo(sender, args);
             }
 
             if (args[0].equalsIgnoreCase("reload")) {
-                return onCmdReload(player, args);
+                return onCmdReload(sender, args);
             }
 
             if (args[0].equalsIgnoreCase("addmember")) {
-                return onCmdAddMember(player, args);
+                return onCmdAddMember(sender, args);
             }
 
             if (args[0].equalsIgnoreCase("remmember")) {
-                return onCmdRemMember(player, args);
+                return onCmdRemMember(sender, args);
             }
 
             if (args[0].equalsIgnoreCase("setowner")) {
-                return onCmdSetOwner(player, args);
+                return onCmdSetOwner(sender, args);
             }
 
             if (args[0].equalsIgnoreCase("setnetworks")) {
-                return onCmdSetNetworks(player, args);
+                return onCmdSetNetworks(sender, args);
             }
 
             return false;
