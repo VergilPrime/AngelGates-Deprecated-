@@ -180,6 +180,10 @@ public class AngelGates extends JavaPlugin {
                 || hasPerm(player, "AngelGates.admin.create")) {
             return true;
         }
+        
+        if (network.equalsIgnoreCase(defNetwork)) {
+            sendMessage(player, AngelGates.getString("createNetRestricted"));
+        }
 
         if (Networks.has(network)) {
             return Networks.get(network).isMember(player.getName());
