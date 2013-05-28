@@ -193,7 +193,7 @@ public class AngelGates extends JavaPlugin {
         
         int limit = Networks.getNetworkLimit(player.getName());
         
-        if (limit <= 0) {
+        if (limit == -1) {
             return true;
         }
 
@@ -674,7 +674,7 @@ public class AngelGates extends JavaPlugin {
         }
         
         sendMessage(sender, "Owned networks: " + sb.toString());
-        sendMessage(sender, owned.size() + " networks of " + (limit > 0 ? limit : "unlimited") + " owned.", false);
+        sendMessage(sender, owned.size() + " networks of " + (limit > -1 ? limit : "unlimited") + " owned.", false);
         
         return true;
     }
@@ -709,15 +709,15 @@ public class AngelGates extends JavaPlugin {
             return true;
         }
         
-        if (i < 0) {
-            sendMessage(sender, "Number must be 0 or more!");
+        if (i < -1) {
+            sendMessage(sender, "Number must be -1 or more!");
 
             return true;
         }
         
         Networks.setNetworkLimit(other, i);
         
-        sendMessage(sender, "Network limit for " + other + " set to " + (i != 0 ? i : "infinite"), false);
+        sendMessage(sender, "Network limit for " + other + " set to " + (i != -1 ? i : "infinite"), false);
         
         return true;
     }
