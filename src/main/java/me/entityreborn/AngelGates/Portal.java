@@ -2,13 +2,16 @@ package me.entityreborn.AngelGates;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Scanner;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import me.entityreborn.AngelGates.Networks.Network;
 import me.entityreborn.AngelGates.events.AngelGatesActivateEvent;
 import me.entityreborn.AngelGates.events.AngelGatesCloseEvent;
@@ -22,6 +25,9 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.InvalidConfigurationException;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.StorageMinecart;
@@ -71,7 +77,7 @@ public class Portal {
     private Blox[] entrances;
     // Gate information
     private String name;
-    private String destination;
+    private String destination = "";
     private String lastDest = "";
     private String network;
     private Gate gate;
@@ -88,14 +94,13 @@ public class Portal {
 
     private Portal(Blox topLeft, int modX, int modZ,
             float rotX, Blox id, Blox button,
-            String dest, String name,
+            String name,
             boolean verified, String network, Gate gate, String owner) {
         this.topLeft = topLeft;
         this.modX = modX;
         this.modZ = modZ;
         this.rotX = rotX;
         this.id = id;
-        this.destination = dest;
         this.button = button;
         this.verified = verified;
         this.network = network;
@@ -103,7 +108,6 @@ public class Portal {
         this.gate = gate;
         this.owner = owner;
         this.world = topLeft.getWorld();
-        this.fixed = dest.length() > 0;
 
         if (verified) {
             this.drawSign();
@@ -878,7 +882,7 @@ public class Portal {
 
         Blox button = null;
         Portal portal;
-        portal = new Portal(topleft, modX, modZ, rotX, id, button, destName, name, false, network, gate, player.getName());
+        portal = new Portal(topleft, modX, modZ, rotX, id, button, name, false, network, gate, player.getName());
 
         int cost = AngelGates.getCreateCost(player, gate);
 
@@ -985,52 +989,40 @@ public class Portal {
     }
 
     public static void saveAllGates(World world) {
-        File loc = new File(AngelGates.getSaveLocation(), world.getName() + ".db");
-        loc.getParentFile().mkdirs();
+        File file = new File(AngelGates.getSaveLocation(), world.getName() + ".yml");
+        file.getParentFile().mkdirs();
+        
+        YamlConfiguration yaml = new YamlConfiguration();
+        
+        ConfigurationSection root = yaml.createSection("portals");
+        
+        for (Portal portal : allPortals) {
+            String wName = portal.world.getName();
+            if (!wName.equalsIgnoreCase(world.getName())) {
+                continue;
+            }
+                
+            ConfigurationSection portalsect = root.createSection(portal.getName());
+            
+            Blox sign = new Blox(portal.id.getBlock());
+            Blox button = portal.button;
+
+            portalsect.set("sign", sign.toString());
+            portalsect.set("button", (button != null) ? button.toString() : "");
+            portalsect.set("modX", portal.modX);
+            portalsect.set("modZ", portal.modZ);
+            portalsect.set("rotX", portal.rotX);
+            portalsect.set("topLeft", portal.topLeft.toString());
+            portalsect.set("gate", portal.gate.getFilename());
+            portalsect.set("network", portal.getNetworkName());
+            portalsect.set("owner", portal.getOwner());
+            portalsect.set("world", portal.world.getName());
+        }
 
         try {
-            BufferedWriter bw = new BufferedWriter(new FileWriter(loc, false));
-
-            for (Portal portal : allPortals) {
-                String wName = portal.world.getName();
-                if (!wName.equalsIgnoreCase(world.getName())) {
-                    continue;
-                }
-                StringBuilder builder = new StringBuilder();
-                Blox sign = new Blox(portal.id.getBlock());
-                Blox button = portal.button;
-
-                builder.append(portal.name);
-                builder.append(':');
-                builder.append(sign.toString());
-                builder.append(':');
-                builder.append((button != null) ? button.toString() : "");
-                builder.append(':');
-                builder.append(portal.modX);
-                builder.append(':');
-                builder.append(portal.modZ);
-                builder.append(':');
-                builder.append(portal.rotX);
-                builder.append(':');
-                builder.append(portal.topLeft.toString());
-                builder.append(':');
-                builder.append(portal.gate.getFilename());
-                builder.append(':');
-                builder.append(portal.isFixed() ? portal.getDestinationName() : "");
-                builder.append(':');
-                builder.append(portal.getNetworkName());
-                builder.append(':');
-                builder.append(portal.getOwner());
-                builder.append(':');
-                builder.append(portal.world.getName());
-
-                bw.append(builder.toString());
-                bw.newLine();
-            }
-
-            bw.close();
+            yaml.save(file);
         } catch (Exception e) {
-            AngelGates.log.log(Level.SEVERE, "Exception while writing AngelGates to " + loc + ": " + e);
+            AngelGates.log.log(Level.SEVERE, "Exception while writing AngelGates to " + file + ": " + e);
         }
     }
 
@@ -1044,101 +1036,122 @@ public class Portal {
     }
 
     public static void loadAllGates(World world) {
-        String location = AngelGates.getSaveLocation();
+        File file = new File(AngelGates.getSaveLocation(), world.getName() + ".yml");
+        
+        if (!file.exists()) {
+            AngelGates.log.info("{" + world.getName() + "} No AngelGates for world ");
+            return;
+        }
+        
+        YamlConfiguration yaml = new YamlConfiguration();
+        try {
+            yaml.load(file);
+        } catch (FileNotFoundException ex) {
+            return;
+        } catch (IOException ex) {
+            AngelGates.log.log(Level.SEVERE, "Error loading " + file.getPath(), ex);
+            return;
+        } catch (InvalidConfigurationException ex) {
+            AngelGates.log.log(Level.SEVERE, "Error loading " + file.getPath(), ex);
+            return;
+        }
+        
+        if (!yaml.isConfigurationSection("portals")) {
+            AngelGates.log.info("{" + world.getName() + "} No AngelGates for world ");
+            return;
+        }
+        
+        if (!yaml.isConfigurationSection("portals")) {
+            AngelGates.log.info("{" + world.getName() + "} Malformed world file. Skipping. ");
+            return;
+        }
+        
+        ConfigurationSection sect = yaml.getConfigurationSection("portals");
+        int portalCount = 0;
+        
+        try {
+            for (String key : sect.getKeys(false)) {
+                try {
+                    ConfigurationSection portalsect = sect.getConfigurationSection(key);
 
-        File db = new File(location, world.getName() + ".db");
+                    Blox sign = new Blox(world, portalsect.getString("sign"));
 
-        if (db.exists()) {
-            int l = 0;
-            int portalCount = 0;
-            try {
-                Scanner scanner = new Scanner(db);
-                while (scanner.hasNextLine()) {
-                    l++;
-                    String line = scanner.nextLine().trim();
-                    if (line.startsWith("#") || line.isEmpty()) {
-                        continue;
-                    }
-                    String[] split = line.split(":");
-                    if (split.length < 8) {
-                        AngelGates.log.info("Invalid line - " + l);
-                        continue;
-                    }
-                    String name = split[0];
-                    Blox sign = new Blox(world, split[1]);
                     if (!(sign.getBlock().getState() instanceof Sign)) {
-                        AngelGates.log.info("Sign on line " + l + " doesn't exist. BlockType = " + sign.getBlock().getType());
+                        AngelGates.log.info("Sign for " + key + " doesn't exist. BlockType = " + sign.getBlock().getType());
                         continue;
                     }
-                    Blox button = (split[2].length() > 0) ? new Blox(world, split[2]) : null;
-                    int modX = Integer.parseInt(split[3]);
-                    int modZ = Integer.parseInt(split[4]);
-                    float rotX = Float.parseFloat(split[5]);
-                    Blox topLeft = new Blox(world, split[6]);
-                    Gate gate = (split[7].contains(";")) ? Gate.getGateByName("nethergate.gate") : Gate.getGateByName(split[7]);
+                
+                    String sbutton = portalsect.getString("button");
+                    Blox button = (sbutton.length() > 0) ? new Blox(world, sbutton) : null;
+
+                    String sgate = portalsect.getString("gate");
+                    Gate gate = (sgate.contains(";")) ? Gate.getGateByName("nethergate.gate") : Gate.getGateByName(sgate);
                     if (gate == null) {
-                        AngelGates.log.info("Gate layout on line " + l + " does not exist [" + split[7] + "]");
+                        AngelGates.log.info("Gate layout for " + key + " does not exist [" + sgate + "]");
                         continue;
                     }
 
-                    String dest = (split.length > 8) ? split[8] : "";
-                    String network = (split.length > 9) ? split[9] : AngelGates.getDefaultNetwork();
+                    String network = portalsect.getString("network").trim();
                     if (network.isEmpty()) {
                         network = AngelGates.getDefaultNetwork();
                     }
-                    String owner = (split.length > 10) ? split[10] : "";
 
-                    Portal portal = new Portal(topLeft, modX, modZ, rotX, sign, button, dest, name, false, network, gate, owner);
+                    int modX = Integer.parseInt(portalsect.getString("modX"));
+                    int modZ = Integer.parseInt(portalsect.getString("modZ"));
+                    float rotX = Float.parseFloat(portalsect.getString("rotX"));
+                    Blox topLeft = new Blox(world, portalsect.getString("topLeft"));
+                    String owner = portalsect.getString("owner");
+
+                    Portal portal = new Portal(topLeft, modX, modZ, rotX, sign, button, key, false, network, gate, owner);
                     portal.register();
                     portal.close(true);
+                    portalCount++;
+                } catch (Exception e) {
+                    AngelGates.log.log(Level.SEVERE, "Malformed data for portal " + key + " in " + file.getName() + ": " + e.getMessage());
                 }
+            }
 
-                scanner.close();
+            AngelGates.log.info("{" + world.getName() + "} Loaded " + portalCount + " AngelGates.");
+        } catch (Exception e) {
+            AngelGates.log.log(Level.SEVERE, "Exception while reading AngelGates from " + file.getName() + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        // Open any always-on gates. Do this here as it should be more efficient than in the loop.
+        for (Iterator<Portal> iter = allPortals.iterator(); iter.hasNext();) {
+            Portal portal = iter.next();
+            if (portal == null) {
+                continue;
+            }
 
-                // Open any always-on gates. Do this here as it should be more efficient than in the loop.
-                int OpenCount = 0;
-                for (Iterator<Portal> iter = allPortals.iterator(); iter.hasNext();) {
-                    Portal portal = iter.next();
-                    if (portal == null) {
-                        continue;
-                    }
-
-                    // Verify portal integrity/register portal
-                    if (!portal.wasVerified()) {
-                        if (!portal.isVerified() || !portal.checkIntegrity()) {
-                            // DEBUG
-                            for (RelativeBlockVector control : portal.getGate().getControls()) {
-                                if (portal.getBlockAt(control).getBlock().getTypeId() != portal.getGate().getControlBlock()) {
-                                    AngelGates.debug("loadAllGates", "Control Block Type == " + portal.getBlockAt(control).getBlock().getTypeId());
-                                }
-                            }
-                            portal.unregister(false);
-                            iter.remove();
-                            AngelGates.log.info("Destroying AngelGate at " + portal.toString());
-                            continue;
-                        } else {
-                            portal.drawSign();
-                            portalCount++;
+            // Verify portal integrity/register portal
+            if (!portal.wasVerified()) {
+                if (!portal.isVerified() || !portal.checkIntegrity()) {
+                    // DEBUG
+                    for (RelativeBlockVector control : portal.getGate().getControls()) {
+                        if (portal.getBlockAt(control).getBlock().getTypeId() != portal.getGate().getControlBlock()) {
+                            AngelGates.debug("loadAllGates", "Control Block Type == " + portal.getBlockAt(control).getBlock().getTypeId());
                         }
                     }
-
-                    if (!portal.isFixed()) {
-                        continue;
-                    }
-
-                    Portal dest = portal.getDestination();
-                    if (dest != null) {
-                        portal.drawSign();
-                        dest.drawSign();
-                    }
+                    portal.unregister(false);
+                    iter.remove();
+                    AngelGates.log.info("Destroying AngelGate at " + portal.toString());
+                    continue;
+                } else {
+                    portal.drawSign();
+                    portalCount++;
                 }
-                AngelGates.log.info("{" + world.getName() + "} Loaded " + portalCount + " AngelGates with " + OpenCount + " set as always-on");
-            } catch (Exception e) {
-                AngelGates.log.log(Level.SEVERE, "Exception while reading AngelGates from " + db.getName() + ": " + l);
-                e.printStackTrace();
             }
-        } else {
-            AngelGates.log.info("{" + world.getName() + "} No AngelGates for world ");
+
+            if (!portal.isFixed()) {
+                continue;
+            }
+
+            Portal dest = portal.getDestination();
+            if (dest != null) {
+                portal.drawSign();
+                dest.drawSign();
+            }
         }
     }
 
