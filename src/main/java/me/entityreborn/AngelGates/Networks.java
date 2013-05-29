@@ -55,6 +55,10 @@ public class Networks {
                 }
             }
             
+            if (members.contains("~everyone")) {
+                return true;
+            }
+            
             return false;
         }
         
