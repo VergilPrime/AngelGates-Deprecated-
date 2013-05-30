@@ -54,7 +54,8 @@ public class Networks {
                 }
             }
             
-            if (members.contains("t:" + Towny.getTown(name).toLowerCase())) {
+            if (Towny.getTown(name) != null &&
+                    members.contains("t:" + Towny.getTown(name).toLowerCase())) {
                 return true;
             }
             
@@ -82,7 +83,8 @@ public class Networks {
                 }
             }
             
-            if (members.contains("t:" + Towny.getTown(name).toLowerCase()) && 
+            if (Towny.getTown(name) != null &&
+                    members.contains("t:" + Towny.getTown(name).toLowerCase()) && 
                     (Towny.isMayor(name) || Towny.isKing(name))) {
                 return true;
             }
