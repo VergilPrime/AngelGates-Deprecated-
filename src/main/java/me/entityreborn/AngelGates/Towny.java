@@ -15,6 +15,10 @@ import org.bukkit.Bukkit;
  */
 public class Towny {
     public static String getTown(String name) {
+        if (name.startsWith("t:")) {
+            name = name.replaceFirst("t\\:", "");
+        }
+        
         try {
             if (Bukkit.getPlayer(name) != null) {
                 name = Bukkit.getPlayer(name).getName();
@@ -32,6 +36,10 @@ public class Towny {
     }
     
     public static boolean isMayor(String name) {
+        if (name.startsWith("t:")) {
+            name = name.replaceFirst("t\\:", "");
+        }
+        
         try {
             if (Bukkit.getPlayer(name) != null) {
                 name = Bukkit.getPlayer(name).getName();
@@ -46,6 +54,10 @@ public class Towny {
     }
     
     public static boolean isKing(String name) {
+        if (name.startsWith("t:")) {
+            name = name.replaceFirst("t\\:", "");
+        }
+        
         try {
             if (Bukkit.getPlayer(name) != null) {
                 name = Bukkit.getPlayer(name).getName();

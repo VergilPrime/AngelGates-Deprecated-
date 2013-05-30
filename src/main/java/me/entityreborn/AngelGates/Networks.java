@@ -16,6 +16,7 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 
 /**
  *
@@ -47,9 +48,13 @@ public class Networks {
             }
             
             if (AngelGates.permissions != null) {
-                for (String group : AngelGates.permissions.getPlayerGroups(Bukkit.getPlayer(name))) {
-                    if (members.contains("g:" + group.toLowerCase())) {
-                        return true;
+                Player player = Bukkit.getPlayer(name);
+                
+                if (player != null) {
+                    for (String group : AngelGates.permissions.getPlayerGroups(player)) {
+                        if (members.contains("g:" + group.toLowerCase())) {
+                            return true;
+                        }
                     }
                 }
             }
@@ -76,9 +81,13 @@ public class Networks {
         
         public boolean isOwner(String name) {
             if (AngelGates.permissions != null) {
-                for (String group : AngelGates.permissions.getPlayerGroups(Bukkit.getPlayer(name))) {
-                    if (owner.equalsIgnoreCase("g:" + group.toLowerCase())) {
-                        return true;
+                Player player = Bukkit.getPlayer(name);
+                
+                if (player != null) {
+                    for (String group : AngelGates.permissions.getPlayerGroups(player)) {
+                        if (owner.equalsIgnoreCase("g:" + group.toLowerCase())) {
+                            return true;
+                        }
                     }
                 }
             }
