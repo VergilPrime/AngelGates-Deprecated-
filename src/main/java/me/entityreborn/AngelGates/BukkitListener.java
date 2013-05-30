@@ -64,7 +64,7 @@ public class BukkitListener implements Listener {
         if (passenger instanceof Player) {
             Player player = (Player) passenger;
 
-            Portal dest = portal.getDestination(player);
+            Portal dest = portal.getDestination();
             if (dest == null) {
                 return;
             }
@@ -156,7 +156,7 @@ public class BukkitListener implements Listener {
             return;
         }
 
-        Portal destination = portal.getDestination(player);
+        Portal destination = portal.getDestination();
         if (destination == null) {
             return;
         }

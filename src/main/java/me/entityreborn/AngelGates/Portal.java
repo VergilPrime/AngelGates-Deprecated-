@@ -146,12 +146,8 @@ public class Portal {
         drawSign();
     }
 
-    public Portal getDestination(Player player) {
-        return Portal.getByName(destination, getNetworkName());
-    }
-
     public Portal getDestination() {
-        return getDestination(null);
+        return Portal.getByName(destination, getNetworkName());
     }
 
     public void setDestination(Portal destination) {
@@ -244,7 +240,7 @@ public class Portal {
         // Call the AngelGateOpenEvent
         AngelGatesOpenEvent event = new AngelGatesOpenEvent(openFor, this, force);
         AngelGates.server.getPluginManager().callEvent(event);
-        if (event.isCancelled()) {
+        if (!force && event.isCancelled()) {
             return false;
         }
         
@@ -269,8 +265,9 @@ public class Portal {
         Portal end = getDestination();
         
         if (end != null && !end.isOpen()) {
-            end.open(openFor, false);
             end.setDestination(this);
+            end.open(openFor, false);
+            
             if (end.isVerified()) {
                 end.drawSign();
             }
@@ -289,6 +286,7 @@ public class Portal {
         if (!isOpen) {
             return;
         }
+        
         // Call the AngelGateCloseEvent
         AngelGatesCloseEvent event = new AngelGatesCloseEvent(closer, this);
         AngelGates.server.getPluginManager().callEvent(event);
