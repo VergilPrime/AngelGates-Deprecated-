@@ -516,7 +516,8 @@ public class AngelGates extends JavaPlugin {
                 return true;
             }
             
-            if (!other.startsWith("g:") && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+            if (!other.startsWith("g:") && !other.startsWith("t:") &&
+                    Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
                 sendMessage(sender, other + " has never joined this server!");
                 
                 return true;
@@ -557,12 +558,6 @@ public class AngelGates extends JavaPlugin {
                 return true;
             }
             
-            if (!other.startsWith("g:") && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
-                sendMessage(sender, other + " has never joined this server");
-                
-                return true;
-            }
-            
             if (!network.isMember(other)) {
                 sendMessage(sender, other + " is not a member of this network");
                 
@@ -598,13 +593,14 @@ public class AngelGates extends JavaPlugin {
                 return true;
             }
             
-            if (!other.startsWith("g:") && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+            if (!other.startsWith("g:") && !other.startsWith("t:") &&
+                    Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
                 sendMessage(sender, other + " has never joined this server");
                 
                 return true;
             }
             
-            if (!other.startsWith("g:") && !network.isMember(other)) {
+            if (!network.isMember(other)) {
                 sendMessage(sender, other + " must be a member of this network to become owner!");
                 
                 return true;
@@ -640,6 +636,7 @@ public class AngelGates extends JavaPlugin {
             
             StringBuilder sb = new StringBuilder();
             boolean first = true;
+            
             for (String item : network.getMembers()){
                if (first)
                   first = false;
@@ -665,7 +662,8 @@ public class AngelGates extends JavaPlugin {
         if (args.length >= 2) {
             name = args[1];
             
-            if (Bukkit.getServer().getOfflinePlayer(name).getFirstPlayed() == 0) {
+            if (!name.startsWith("g:") && !name.startsWith("t:") && 
+                    Bukkit.getServer().getOfflinePlayer(name).getFirstPlayed() == 0) {
                 sendMessage(sender, name + " has never joined this server");
                 return true;
             }
@@ -676,7 +674,8 @@ public class AngelGates extends JavaPlugin {
         
         StringBuilder sb = new StringBuilder();
         boolean first = true;
-        for (Network item : Networks.getOwnedNetworks(name)){
+        
+        for (Network item : owned){
            if (first) {
               first = false;
            } else {
@@ -706,31 +705,32 @@ public class AngelGates extends JavaPlugin {
         
         String other = args[1];
         
-        if (!other.startsWith("g:") && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+        if (!other.startsWith("g:") && !other.startsWith("t:") && 
+                Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
             sendMessage(sender, other + " has never joined this server");
 
             return true;
         }
         
         String samount = args[2];
-        int i;
+        int amount;
         
         try {
-            i = Integer.valueOf(samount);
+            amount = Integer.valueOf(samount);
         } catch (IllegalArgumentException e) {
             sendMessage(sender, "Must specifiy integer for amount for second argument");
             return true;
         }
         
-        if (i < -1) {
+        if (amount < -1) {
             sendMessage(sender, "Number must be -1 or more!");
 
             return true;
         }
         
-        Networks.setNetworkLimit(other, i);
+        Networks.setNetworkLimit(other, amount);
         
-        sendMessage(sender, "Network limit for " + other + " set to " + (i != -1 ? i : "infinite"), false);
+        sendMessage(sender, "Network limit for " + other + " set to " + (amount != -1 ? amount : "infinite"), false);
         
         return true;
     }
