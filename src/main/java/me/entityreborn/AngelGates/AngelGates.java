@@ -140,7 +140,7 @@ public class AngelGates extends JavaPlugin {
 
         // Gate is already open
         if (portal.isOpen()) {
-            portal.close(false);
+            portal.close(player, false);
             return;
         }
 
@@ -803,12 +803,12 @@ public class AngelGates extends JavaPlugin {
                 }
                 
                 if (p.getFirstEnteredTime() == 0 && time > p.getOpenTime() + AngelGates.openTime) {
-                    p.close(false);
+                    p.close(true);
                     iter.remove();
                 }
                 
                 if (p.getFirstEnteredTime() != 0 && time > p.getFirstEnteredTime() + AngelGates.stayOpenTime) {
-                    p.close(false);
+                    p.close(true);
                     iter.remove();
                 }
             }

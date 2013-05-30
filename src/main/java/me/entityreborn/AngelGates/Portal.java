@@ -80,7 +80,6 @@ public class Portal {
     private World world;
     private boolean verified;
     // In-use information
-    private Player activePlayer;
     private ArrayList<String> destinations = new ArrayList<String>();
     private boolean isOpen = false;
     private long openTime;
@@ -120,10 +119,6 @@ public class Portal {
      */
     public float getRotation() {
         return rotX;
-    }
-
-    public Player getActivePlayer() {
-        return activePlayer;
     }
 
     public String getNetworkName() {
@@ -285,21 +280,23 @@ public class Portal {
 
         return true;
     }
-
+    
     public void close(boolean force) {
+        close(null, force);
+    }
+
+    public void close(Player closer, boolean force) {
         if (!isOpen) {
             return;
         }
         // Call the AngelGateCloseEvent
-        AngelGatesCloseEvent event = new AngelGatesCloseEvent(this, force);
+        AngelGatesCloseEvent event = new AngelGatesCloseEvent(closer, this);
         AngelGates.server.getPluginManager().callEvent(event);
         
-        if (event.isCancelled()) {
+        if (!force && event.isCancelled()) {
             return;
         }
         
-        force = event.getForce();
-
         // Close this gate, then the dest gate.
         int closedType = gate.getPortalBlockClosed();
         
@@ -345,6 +342,7 @@ public class Portal {
         if (!origin.equals(this)) {
             AngelGatesPortalEvent pEvent = new AngelGatesPortalEvent(player, origin, this, exit);
             AngelGates.server.getPluginManager().callEvent(pEvent);
+            
             // Teleport is cancelled
             if (pEvent.isCancelled()) {
                 origin.teleport(player, origin, event);
@@ -379,6 +377,7 @@ public class Portal {
 
         // Get new velocity
         final Vector newVelocity = new Vector();
+        
         switch ((int) id.getBlock().getData()) {
             case 2:
                 newVelocity.setZ(-1);
@@ -393,14 +392,18 @@ public class Portal {
                 newVelocity.setX(1);
                 break;
         }
+        
         newVelocity.multiply(velocity);
 
         final Entity passenger = vehicle.getPassenger();
+        
         if (passenger != null) {
             final Vehicle v = exit.getWorld().spawn(exit, vehicle.getClass());
+            
             vehicle.eject();
             vehicle.remove();
             passenger.teleport(exit);
+            
             AngelGates.server.getScheduler().scheduleSyncDelayedTask(AngelGates.self, new Runnable() {
                 public void run() {
                     v.setPassenger(passenger);
@@ -409,10 +412,12 @@ public class Portal {
             }, 1);
         } else {
             Vehicle mc = exit.getWorld().spawn(exit, vehicle.getClass());
+            
             if (mc instanceof StorageMinecart) {
                 StorageMinecart smc = (StorageMinecart) mc;
                 smc.getInventory().setContents(((StorageMinecart) vehicle).getInventory().getContents());
             }
+            
             mc.setVelocity(newVelocity);
             vehicle.remove();
         }
@@ -491,7 +496,6 @@ public class Portal {
         
         AngelGates.activeList.add(this);
         
-        activePlayer = player;
         destinations = getDestinations(player, network);
         
         if (AngelGates.sortLists) {
@@ -530,7 +534,6 @@ public class Portal {
         
         destinations.clear();
         destination = "";
-        activePlayer = null;
         
         drawSign();
     }
@@ -546,7 +549,7 @@ public class Portal {
     public void cycleDestination(Player player, int dir) {
         Boolean activate = false;
         
-        if (!isActive() || getActivePlayer() != player) {
+        if (!isActive()) {
             // If the event is cancelled, return
             if (!activate(player)) {
                 return;

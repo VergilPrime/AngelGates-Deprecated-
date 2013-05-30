@@ -3,6 +3,7 @@ package me.entityreborn.AngelGates.events;
 import org.bukkit.event.HandlerList;
 
 import me.entityreborn.AngelGates.Portal;
+import org.bukkit.entity.Player;
 
 /**
  * AngelGate - A portal plugin for Bukkit Copyright (C) 2011, 2012 Steven
@@ -22,10 +23,9 @@ import me.entityreborn.AngelGates.Portal;
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 public class AngelGatesCloseEvent extends AngelGatesEvent {
-
-    private boolean force;
     private static final HandlerList handlers = new HandlerList();
-
+    private Player player;
+    
     public HandlerList getHandlers() {
         return handlers;
     }
@@ -34,17 +34,11 @@ public class AngelGatesCloseEvent extends AngelGatesEvent {
         return handlers;
     }
 
-    public AngelGatesCloseEvent(Portal portal, boolean force) {
+    public AngelGatesCloseEvent(Player player, Portal portal) {
         super("AngelGatesCloseEvent", portal);
-
-        this.force = force;
     }
-
-    public boolean getForce() {
-        return force;
-    }
-
-    public void setForce(boolean force) {
-        this.force = force;
+    
+    public Player getPlayer() {
+        return player;
     }
 }
