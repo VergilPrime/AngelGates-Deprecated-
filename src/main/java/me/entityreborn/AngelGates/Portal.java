@@ -272,8 +272,8 @@ public class Portal {
         AngelGates.activeList.remove(this);
 
         Portal end = getDestination();
-        // Only open dest if it's not-fixed or points at this gate
-        if (end != null && (end.getDestinationName().equalsIgnoreCase(getName())) && !end.isOpen()) {
+        
+        if (end != null && !end.isOpen()) {
             end.open(openFor, false);
             end.setDestination(this);
             if (end.isVerified()) {

@@ -140,16 +140,7 @@ public class AngelGates extends JavaPlugin {
 
         // Gate is already open
         if (portal.isOpen()) {
-            // Close if this player opened the gate
-            if (portal.getActivePlayer() == player) {
-                portal.close(false);
-            }
-            return;
-        }
-
-        // Gate that someone else is using -- Deny access
-        if (portal.isActive() && (portal.getActivePlayer() != player)) {
-            AngelGates.sendMessage(player, AngelGates.getString("denyMsg"));
+            portal.close(false);
             return;
         }
 
