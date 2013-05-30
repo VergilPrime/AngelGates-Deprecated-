@@ -14,7 +14,16 @@ import org.bukkit.Bukkit;
  * @author import
  */
 public class Towny {
+    
+    public static boolean hasTowny() {
+        return Bukkit.getPluginManager().getPlugin("Towny") != null;
+    }
+    
     public static String getTown(String name) {
+        if (!hasTowny()) {
+            return null;
+        }
+        
         if (name.startsWith("t:")) {
             name = name.replaceFirst("t\\:", "");
         }
@@ -36,6 +45,10 @@ public class Towny {
     }
     
     public static boolean isMayor(String name) {
+        if (!hasTowny()) {
+            return false;
+        }
+        
         if (name.startsWith("t:")) {
             name = name.replaceFirst("t\\:", "");
         }
@@ -54,6 +67,10 @@ public class Towny {
     }
     
     public static boolean isKing(String name) {
+        if (!hasTowny()) {
+            return false;
+        }
+        
         if (name.startsWith("t:")) {
             name = name.replaceFirst("t\\:", "");
         }
