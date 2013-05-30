@@ -1,17 +1,13 @@
 package me.entityreborn.AngelGates;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Scanner;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import me.entityreborn.AngelGates.Networks.Network;
 import me.entityreborn.AngelGates.events.AngelGatesActivateEvent;
 import me.entityreborn.AngelGates.events.AngelGatesCloseEvent;
@@ -19,7 +15,6 @@ import me.entityreborn.AngelGates.events.AngelGatesCreateEvent;
 import me.entityreborn.AngelGates.events.AngelGatesDeactivateEvent;
 import me.entityreborn.AngelGates.events.AngelGatesOpenEvent;
 import me.entityreborn.AngelGates.events.AngelGatesPortalEvent;
-
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -84,7 +79,6 @@ public class Portal {
     private String owner = "";
     private World world;
     private boolean verified;
-    private boolean fixed;
     // In-use information
     private Player activePlayer;
     private ArrayList<String> destinations = new ArrayList<String>();
@@ -279,7 +273,7 @@ public class Portal {
 
         Portal end = getDestination();
         // Only open dest if it's not-fixed or points at this gate
-        if (end != null && (!end.isFixed() || end.getDestinationName().equalsIgnoreCase(getName())) && !end.isOpen()) {
+        if (end != null && (end.getDestinationName().equalsIgnoreCase(getName())) && !end.isOpen()) {
             end.open(openFor, false);
             end.setDestination(this);
             if (end.isVerified()) {
@@ -325,10 +319,6 @@ public class Portal {
         }
 
         deactivate();
-    }
-
-    public boolean isFixed() {
-        return fixed;
     }
 
     public boolean isPowered() {
@@ -485,10 +475,6 @@ public class Portal {
             if (dest.equalsIgnoreCase(getName())) {
                 continue;
             }
-            // Check if dest is a fixed gate not pointing to this gate
-            if (portal.isFixed() && !portal.getDestinationName().equalsIgnoreCase(getName())) {
-                continue;
-            }
             // Allow random use by non-players (Minecarts)
             if (player == null) {
                 dests.add(portal.getName());
@@ -542,10 +528,6 @@ public class Portal {
 
         AngelGates.activeList.remove(this);
         
-        if (isFixed()) {
-            return;
-        }
-        
         destinations.clear();
         destination = "";
         activePlayer = null;
@@ -554,7 +536,7 @@ public class Portal {
     }
 
     public boolean isActive() {
-        return isFixed() || destinations.size() > 0;
+        return destinations.size() > 0;
     }
 
     public void cycleDestination(Player player) {
@@ -620,38 +602,26 @@ public class Portal {
             AngelGates.setLine(sign, ++done, AngelGates.getString("signToUse"));
             AngelGates.setLine(sign, ++done, "(" + network + ")");
         } else {
-            if (isFixed()) {
-                AngelGates.setLine(sign, ++done, ">" + destination + "<");
-                AngelGates.setLine(sign, ++done, "(" + network + ")");
-                Portal dest = Portal.getByName(destination, network);
+            int index = destinations.indexOf(destination);
 
-                if (dest == null) {
-                    AngelGates.setLine(sign, ++done, AngelGates.getString("signDisconnected"));
-                } else {
-                    AngelGates.setLine(sign, ++done, "");
-                }
-            } else {
-                int index = destinations.indexOf(destination);
+            if ((index == max) && (max > 1) && (++done <= 3)) {
+                AngelGates.setLine(sign, done, destinations.get(index - 2));
+            }
 
-                if ((index == max) && (max > 1) && (++done <= 3)) {
-                    AngelGates.setLine(sign, done, destinations.get(index - 2));
-                }
+            if ((index > 0) && (++done <= 3)) {
+                AngelGates.setLine(sign, done, destinations.get(index - 1));
+            }
 
-                if ((index > 0) && (++done <= 3)) {
-                    AngelGates.setLine(sign, done, destinations.get(index - 1));
-                }
+            if (++done <= 3) {
+                AngelGates.setLine(sign, done, " >" + destination + "< ");
+            }
 
-                if (++done <= 3) {
-                    AngelGates.setLine(sign, done, " >" + destination + "< ");
-                }
+            if ((max >= index + 1) && (++done <= 3)) {
+                AngelGates.setLine(sign, done, destinations.get(index + 1));
+            }
 
-                if ((max >= index + 1) && (++done <= 3)) {
-                    AngelGates.setLine(sign, done, destinations.get(index + 1));
-                }
-
-                if ((max >= index + 2) && (++done <= 3)) {
-                    AngelGates.setLine(sign, done, destinations.get(index + 2));
-                }
+            if ((max >= index + 2) && (++done <= 3)) {
+                AngelGates.setLine(sign, done, destinations.get(index + 2));
             }
         }
 
@@ -703,10 +673,6 @@ public class Portal {
                 continue;
             }
             
-            if (origin.isFixed()) {
-                origin.drawSign();
-            }
-            
             origin.close(true);
         }
 
@@ -727,7 +693,6 @@ public class Portal {
     }
 
     private void register() {
-        fixed = destination.length() > 0;
         String netname = getNetworkName().toLowerCase();
         // Check if network exists in our network list
         if (!lookupNamesNet.containsKey(netname)) {
@@ -952,10 +917,6 @@ public class Portal {
                     !origin.isVerified()) {
                 continue;
             }
-            
-            if (origin.isFixed()) {
-                origin.drawSign();
-            }
         }
 
         saveAllGates(portal.getWorld());
@@ -1142,25 +1103,17 @@ public class Portal {
                     portalCount++;
                 }
             }
-
-            if (!portal.isFixed()) {
-                continue;
-            }
-
-            Portal dest = portal.getDestination();
-            if (dest != null) {
-                portal.drawSign();
-                dest.drawSign();
-            }
         }
     }
 
     public static void closeAllGates() {
         AngelGates.log.info("Closing all AngelGates.");
+        
         for (Portal p : allPortals) {
             if (p == null) {
                 continue;
             }
+            
             p.close(true);
         }
     }

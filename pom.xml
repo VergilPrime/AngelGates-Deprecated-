@@ -15,6 +15,12 @@
     </properties>
   
     <repositories>
+        <!-- This is a dirty hack, as Towny isn't a maven project -->
+        <repository>
+            <id>project.local</id>
+            <name>Project Repository</name>
+            <url>file:${project.basedir}/lib</url>
+        </repository>
         <repository>
             <id>bukkit-repo</id>
             <url>http://repo.bukkit.org/content/groups/public/</url>
@@ -26,6 +32,15 @@
     </repositories>
 
     <dependencies>
+        <!-- This is a dirty hack, as Towny isn't a maven project -->
+        <dependency>
+            <groupId>Towny</groupId>
+            <artifactId>Towny</artifactId>
+            <version>0.83.0.0</version>
+            <scope>system</scope>
+            <optional>true</optional>
+            <systemPath>${project.basedir}/lib/Towny.jar</systemPath>
+        </dependency>
         <dependency>
             <groupId>org.bukkit</groupId>
             <artifactId>bukkit</artifactId>

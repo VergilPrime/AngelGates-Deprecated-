@@ -236,7 +236,7 @@ public class BukkitListener implements Listener {
                     return;
                 }
 
-                if ((!portal.isOpen()) && (!portal.isFixed())) {
+                if (!portal.isOpen()) {
                     portal.cycleDestination(player);
                 }
                 return;
@@ -296,7 +296,7 @@ public class BukkitListener implements Listener {
                     return;
                 }
 
-                if ((!portal.isOpen()) && (!portal.isFixed())) {
+                if (!portal.isOpen()) {
                     portal.cycleDestination(player, -1);
                 }
                 return;

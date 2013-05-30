@@ -148,7 +148,7 @@ public class AngelGates extends JavaPlugin {
         }
 
         // Gate that someone else is using -- Deny access
-        if ((!portal.isFixed()) && portal.isActive() && (portal.getActivePlayer() != player)) {
+        if (portal.isActive() && (portal.getActivePlayer() != player)) {
             AngelGates.sendMessage(player, AngelGates.getString("denyMsg"));
             return;
         }

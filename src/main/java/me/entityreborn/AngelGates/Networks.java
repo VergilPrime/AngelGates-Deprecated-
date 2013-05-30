@@ -6,7 +6,6 @@ package me.entityreborn.AngelGates;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,6 +54,10 @@ public class Networks {
                 }
             }
             
+            if (members.contains("t:" + Towny.getTown(name).toLowerCase())) {
+                return true;
+            }
+            
             if (members.contains("~everyone")) {
                 return true;
             }
@@ -77,6 +80,11 @@ public class Networks {
                         return true;
                     }
                 }
+            }
+            
+            if (members.contains("t:" + Towny.getTown(name).toLowerCase()) && 
+                    (Towny.isMayor(name) || Towny.isKing(name))) {
+                return true;
             }
             
             return name.equalsIgnoreCase(owner);
