@@ -452,7 +452,12 @@ public class AngelGates extends JavaPlugin {
     }
 
     public boolean onCmdHelp(CommandSender sender, String[] args) {
-        String which = (args.length != 0) ? args[0].toLowerCase() : "";
+        String which = "";
+        
+        if (args.length != 0 && !args[0].equalsIgnoreCase("help")) {
+             which = args[0].toLowerCase();
+        }
+        
         boolean nameinfo = false;
         
         if (which.isEmpty() || which.equals("reload")) {
