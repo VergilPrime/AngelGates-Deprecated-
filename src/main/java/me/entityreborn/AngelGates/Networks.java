@@ -23,6 +23,7 @@ import org.bukkit.entity.Player;
  * @author import
  */
 public class Networks {
+
     public static class Network {
         private String name;
         private String owner;
@@ -128,6 +129,11 @@ public class Networks {
     
     public static void setNetworkLimit(String player, int limit) {
         playerNetworkLimit.put(player.toLowerCase(), limit);
+    }
+    
+    static void addNetworkLimit(String other, int amount) {
+        int limit = getNetworkLimit(other) + amount;
+        playerNetworkLimit.put(other, limit);
     }
     
     public static Set<Network> getOwnedNetworks(String player) {

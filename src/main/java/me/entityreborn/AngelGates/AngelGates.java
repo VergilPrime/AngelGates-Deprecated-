@@ -445,6 +445,40 @@ public class AngelGates extends JavaPlugin {
 
         Networks.load(getDataFolder().getPath());
     }
+    
+    public boolean onCmdHelp(CommandSender sender, String[] args) {
+        String which = (args.length != 0) ? args[0].toLowerCase() : "";
+        
+        sender.sendMessage(ChatColor.GOLD + "/ag reload");
+        sender.sendMessage(ChatColor.WHITE + " - Reload the plugin configuration");
+        
+        sender.sendMessage(ChatColor.GOLD + "/ag info [player]");
+        sender.sendMessage(ChatColor.WHITE + " - Provide info about yourself or another player");
+        
+        sender.sendMessage(ChatColor.GOLD + "/ag netinfo <network>");
+        sender.sendMessage(ChatColor.WHITE + " - Provide info about <network>");
+        
+        sender.sendMessage(ChatColor.GOLD + "/ag setowner <network> <name>");
+        sender.sendMessage(ChatColor.WHITE + " - Set the owner of <network> to <name>");
+        
+        sender.sendMessage(ChatColor.GOLD + "/ag setnetworks <name> <amount>");
+        sender.sendMessage(ChatColor.WHITE + " - Set the networklimit of <player> to <amount>");
+        sender.sendMessage(ChatColor.WHITE + "   Use -1 for infinite, and 0 for none");
+        
+        sender.sendMessage(ChatColor.GOLD + "/ag addnetworks <name> <amount>");
+        sender.sendMessage(ChatColor.WHITE + " - Add to the networklimit of <player>");
+        
+        sender.sendMessage(ChatColor.GOLD + "/ag addmember <network> <name>");
+        sender.sendMessage(ChatColor.WHITE + " - Add a user, group or town to <network>");
+        
+        sender.sendMessage(ChatColor.GOLD + "/ag remmember <network> <name>");
+        sender.sendMessage(ChatColor.WHITE + " - Remove a user, group or town from <network>");
+        
+        sender.sendMessage(ChatColor.BLUE + "Prefix a name with g: to specify a group or");
+        sender.sendMessage(ChatColor.WHITE + "t: to specify a town.");
+        
+        return true;
+    }
 
     public boolean onCmdReload(CommandSender sender, String[] args) {
         if (!hasPerm(sender, "angelgates.commands")
@@ -734,6 +768,52 @@ public class AngelGates extends JavaPlugin {
         
         return true;
     }
+    
+    private boolean onCmdAddNetworks(CommandSender sender, String[] args) {
+        if (!hasPerm(sender, "angelgates.commands") &&
+                !hasPerm(sender, "angelgates.commands.addnetworks")) {
+            sendMessage(sender, "Permission denied");
+
+            return true;
+        }
+        
+        if (args.length != 3) {
+            return false;
+        }
+        
+        String other = args[1];
+        
+        if (!other.startsWith("g:") && !other.startsWith("t:") && 
+                Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+            sendMessage(sender, other + " has never joined this server");
+
+            return true;
+        }
+        
+        String samount = args[2];
+        int amount;
+        
+        try {
+            amount = Integer.valueOf(samount);
+        } catch (IllegalArgumentException e) {
+            sendMessage(sender, "Must specifiy integer for amount for second argument");
+            return true;
+        }
+        
+        if (amount < 1) {
+            sendMessage(sender, "Number must be 1 or more!");
+
+            return true;
+        }
+        
+        Networks.addNetworkLimit(other, amount);
+        
+        int limit = Networks.getNetworkLimit(other);
+        
+        sendMessage(sender, "Network limit for " + other + " set to " + limit, false);
+        
+        return true;
+    }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -766,6 +846,10 @@ public class AngelGates extends JavaPlugin {
 
             if (args[0].equalsIgnoreCase("setnetworks")) {
                 return onCmdSetNetworks(sender, args);
+            }
+            
+            if (args[0].equalsIgnoreCase("addnetworks")) {
+                return onCmdAddNetworks(sender, args);
             }
 
             return false;
