@@ -36,6 +36,7 @@ public class Networks {
             this.name = name;
             this.owner = owner;
             members = new HashSet<String>();
+            members.add(owner);
         }
         
         public void addMember(String name) {
