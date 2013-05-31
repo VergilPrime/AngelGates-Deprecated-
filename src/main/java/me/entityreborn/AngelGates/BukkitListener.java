@@ -4,7 +4,7 @@
  */
 package me.entityreborn.AngelGates;
 
-import static me.entityreborn.AngelGates.AngelGates.canOpenNetwork;
+import static me.entityreborn.AngelGates.AngelGates.canUseNetwork;
 import static me.entityreborn.AngelGates.AngelGates.canUsePortal;
 import static me.entityreborn.AngelGates.AngelGates.handleVehicles;
 import static me.entityreborn.AngelGates.AngelGates.log;
@@ -227,7 +227,7 @@ public class BukkitListener implements Listener {
                 event.setUseInteractedBlock(Event.Result.DENY);
 
                 boolean deny = false;
-                if (!canOpenNetwork(player, portal.getNetworkName())) {
+                if (!canUseNetwork(player, portal.getNetworkName())) {
                     deny = true;
                 }
 
@@ -254,7 +254,7 @@ public class BukkitListener implements Listener {
                 event.setUseInteractedBlock(Event.Result.DENY);
 
                 boolean deny = false;
-                if (!canOpenNetwork(player, portal.getNetworkName())) {
+                if (!canUseNetwork(player, portal.getNetworkName())) {
                     deny = true;
                 }
 
@@ -287,7 +287,7 @@ public class BukkitListener implements Listener {
                 }
 
                 boolean deny = false;
-                if (!canOpenNetwork(player, portal.getNetworkName())) {
+                if (!canUseNetwork(player, portal.getNetworkName())) {
                     deny = true;
                 }
 
@@ -315,7 +315,7 @@ public class BukkitListener implements Listener {
                 }
 
                 boolean deny = false;
-                if (!canOpenNetwork(player, portal.getNetworkName())) {
+                if (!canUseNetwork(player, portal.getNetworkName())) {
                     deny = true;
                 }
 

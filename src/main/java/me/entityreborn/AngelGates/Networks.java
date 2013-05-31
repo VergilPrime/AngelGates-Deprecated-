@@ -6,7 +6,6 @@ package me.entityreborn.AngelGates;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,10 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
@@ -34,17 +31,20 @@ public class Networks {
 
         public Network(String name, String owner) {
             this.name = name;
-            this.owner = owner;
+            this.owner = owner.toLowerCase();
+            
             members = new HashSet<String>();
-            members.add(owner);
+            members.add(owner.toLowerCase());
         }
         
         public void addMember(String name) {
             members.add(name.toLowerCase());
+            Networks.save();
         }
         
         public void removeMember(String name) {
             members.remove(name.toLowerCase());
+            Networks.save();
         }
         
         public boolean isMember(String name) {
@@ -117,6 +117,7 @@ public class Networks {
 
         void setOwner(String other) {
             owner = other.toLowerCase();
+            Networks.save();
             
             for (String pname : Portal.getNetwork(name)) {
                 Portal p = Portal.getByName(pname, name);
@@ -127,6 +128,7 @@ public class Networks {
     
     private static Map<String, Network> networks = new HashMap<String, Network>();
     private static Map<String, Integer> playerNetworkLimit = new HashMap<String, Integer>();
+    private static File file;
     
     public static int getNetworkLimit(String player) {
         if (!playerNetworkLimit.containsKey(player.toLowerCase())) {
@@ -138,11 +140,13 @@ public class Networks {
     
     public static void setNetworkLimit(String player, int limit) {
         playerNetworkLimit.put(player.toLowerCase(), limit);
+        save();
     }
     
     static void addNetworkLimit(String other, int amount) {
         int limit = getNetworkLimit(other) + amount;
         playerNetworkLimit.put(other, limit);
+        save();
     }
     
     public static Set<Network> getOwnedNetworks(String player) {
@@ -160,13 +164,13 @@ public class Networks {
     public static Network add(String name, String owner) {
         Network net = new Network(name, owner);
         networks.put(name.toLowerCase(), net);
-        
+        save();
         return net;
     }
     
     public static Network add(Network net) {
         networks.put(net.getName().toLowerCase(), net);
-        
+        save();
         return net;
     }
     
@@ -187,11 +191,11 @@ public class Networks {
     }
     
     public static void load(String dir) {
-        File config = new File(dir, "networks.yml");
+        file = new File(dir, "networks.yml");
         YamlConfiguration yaml = new YamlConfiguration();
         
         try {
-            yaml.load(config);
+            yaml.load(file);
         } catch (FileNotFoundException fnf) {
             // Fine.
         } catch (Exception ex) {
@@ -248,13 +252,16 @@ public class Networks {
         }
     }
     
-    public static void save(String dir) {
-        File config = new File(dir, "networks.yml");
+    public static void save() {
+        if (file == null) {
+            return;
+        }
+        
         YamlConfiguration yaml = new YamlConfiguration();
         
         try {
-            if (config.exists()) {
-                yaml.load(config);
+            if (file.exists()) {
+                yaml.load(file);
             }
         } catch (Exception ex) {
             AngelGates.log.log(Level.SEVERE, "Could not load network/userlimit database!", ex);
@@ -282,11 +289,16 @@ public class Networks {
         }
         
         try {
-            yaml.save(config);
+            yaml.save(file);
         } catch (Exception ex) {
             AngelGates.log.log(Level.SEVERE, "Could not save network/userlimit database!", ex);
             return;
         }
+    }
+    
+    public static void save(String dir) {
+        file = new File(dir, "networks.yml");
+        save();
     }
     
     public static void main(String[] args) {

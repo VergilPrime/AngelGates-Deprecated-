@@ -217,7 +217,8 @@ public class AngelGates extends JavaPlugin {
      */
     public static boolean canDestroy(Player player, Portal portal) {
         // Check for general destroy
-        if (hasPerm(player, "AngelGates.admin")) {
+        if (hasPerm(player, "AngelGates.admin.destroy") ||
+                hasPerm(player, "AngelGates.admin")) {
             return true;
         }
 
@@ -306,14 +307,17 @@ public class AngelGates extends JavaPlugin {
         if (search.length != replace.length) {
             return "";
         }
+        
         for (int i = 0; i < search.length; i++) {
             format = format.replace(search[i], replace[i]);
         }
+        
         return format;
     }
 
-    static boolean canOpenNetwork(Player player, String networkName) {
-        if (hasPerm(player, "AngelGates.admin")) {
+    static boolean canUseNetwork(Player player, String networkName) {
+        if (hasPerm(player, "AngelGates.admin.use") ||
+                hasPerm(player, "AngelGates.admin")) {
             return true;
         }
 
@@ -324,6 +328,7 @@ public class AngelGates extends JavaPlugin {
 
         return false;
     }
+    
     private FileConfiguration newConfig;
     private PluginManager pm;
 
@@ -625,7 +630,7 @@ public class AngelGates extends JavaPlugin {
 
             network.addMember(other);
             sendMessage(sender, other + " has been added to the network!", false);
-
+            
             return true;
         }
 
@@ -660,7 +665,7 @@ public class AngelGates extends JavaPlugin {
 
             network.removeMember(other);
             sendMessage(sender, other + " has been removed from the network!", false);
-
+            
             return true;
         }
 
@@ -707,7 +712,7 @@ public class AngelGates extends JavaPlugin {
             }
 
             network.setOwner(other);
-
+            
             return true;
         }
 
