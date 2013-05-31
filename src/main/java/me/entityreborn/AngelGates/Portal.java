@@ -593,18 +593,17 @@ public class Portal {
         }
         
         Sign sign = (Sign) id.getBlock().getState();
-        AngelGates.setLine(sign, 0, "-" + name + "-");
         
         int max = destinations.size() - 1;
         int done = 0;
 
         if (!isActive()) {
-            AngelGates.setLine(sign, ++done, AngelGates.getString("signRightClick"));
-            AngelGates.setLine(sign, ++done, AngelGates.getString("signToUse"));
-            AngelGates.setLine(sign, ++done, "(" + network + ")");
+            AngelGates.setLine(sign, done, "-" + getNetwork().getName() + "-");
+            AngelGates.setLine(sign, ++done, "-" + name + "-");
+            AngelGates.setLine(sign, ++done, "-" + owner + "-");
         } else {
             int index = destinations.indexOf(destination);
-
+            AngelGates.setLine(sign, done, "-" + name + "-");
             if ((index == max) && (max > 1) && (++done <= 3)) {
                 AngelGates.setLine(sign, done, destinations.get(index - 2));
             }
@@ -757,9 +756,8 @@ public class Portal {
 
         Blox parent = new Blox(player.getWorld(), idParent.getX(), idParent.getY(), idParent.getZ());
         Blox topleft = null;
-        String name = filterName(event.getLine(0));
-        String destName = filterName(event.getLine(1));
-        String network = filterName(event.getLine(2));
+        String network = filterName(event.getLine(0));
+        String name = filterName(event.getLine(1));
 
         // Moved the layout check so as to avoid invalid messages when not making a gate
         int modX = 0;

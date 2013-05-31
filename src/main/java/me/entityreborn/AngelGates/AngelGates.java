@@ -819,7 +819,11 @@ public class AngelGates extends JavaPlugin {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         String cmd = command.getName();
         
-        if (cmd.equalsIgnoreCase("ag") && args.length > 0) {
+        if (cmd.equalsIgnoreCase("ag")) {
+            if (args.length == 0|| args[0].equalsIgnoreCase("help")) {
+                return onCmdHelp(sender, args);
+            }
+            
             if (args[0].equalsIgnoreCase("info")) {
                 return onCmdInfo(sender, args);
             }
