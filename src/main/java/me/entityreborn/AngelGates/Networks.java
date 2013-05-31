@@ -181,6 +181,10 @@ public class Networks {
         return networks.containsKey(net.toLowerCase());
     }
     
+    public static void clear() {
+        networks = new HashMap<String, Network>();
+    }
+    
     public static void load(String dir) {
         File config = new File(dir, "networks.yml");
         YamlConfiguration yaml = new YamlConfiguration();

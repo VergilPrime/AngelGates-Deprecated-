@@ -585,7 +585,7 @@ public class AngelGates extends JavaPlugin {
             EconomyHandler.economy = null;
         }
 
-        sendMessage(sender, "AngelGate reloaded", false);
+        sendMessage(sender, "AngelGates reloaded", false);
 
         return true;
     }

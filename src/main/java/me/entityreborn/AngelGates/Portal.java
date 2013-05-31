@@ -829,10 +829,6 @@ public class Portal {
         Blox button = null;
         Portal portal;
         
-        if (!Networks.has(network)) {
-            Networks.add(network, player.getName());
-        }
-        
         portal = new Portal(topleft, modX, modZ, rotX, id, button, name, false, network, gate);
 
         int cost = AngelGates.getCreateCost(player, gate);
@@ -881,6 +877,10 @@ public class Portal {
             String deductMsg = AngelGates.getString("ecoDeduct");
             deductMsg = AngelGates.replaceVars(deductMsg, new String[]{"%cost%", "%portal%"}, new String[]{EconomyHandler.format(cost), name});
             AngelGates.sendMessage(player, deductMsg, false);
+        }
+        
+        if (!Networks.has(network)) {
+            Networks.add(network, player.getName());
         }
 
         button = topleft.modRelative(buttonVector.getRight(), buttonVector.getDepth(), buttonVector.getDistance() + 1, modX, 1, modZ);
