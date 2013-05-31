@@ -76,7 +76,7 @@ public class BukkitListener implements Listener {
 
             int cost = AngelGates.getGateCost(player, portal, dest);
             if (cost > 0) {
-                String target = portal.getGate().getToOwner() ? portal.getOwner() : null;
+                String target = portal.getGate().getToOwner() ? portal.getNetwork().getOwner() : null;
                 if (!AngelGates.chargePlayer(player, target, cost)) {
                     // Insufficient Funds
                     AngelGates.sendMessage(player, AngelGates.getString("ecoInFunds"));
@@ -169,7 +169,7 @@ public class BukkitListener implements Listener {
 
         int cost = AngelGates.getGateCost(player, portal, destination);
         if (cost > 0) {
-            String target = portal.getGate().getToOwner() ? portal.getOwner() : null;
+            String target = portal.getGate().getToOwner() ? portal.getNetwork().getOwner() : null;
             if (!AngelGates.chargePlayer(player, target, cost)) {
                 // Insufficient Funds
                 AngelGates.sendMessage(player, "Insufficient Funds");

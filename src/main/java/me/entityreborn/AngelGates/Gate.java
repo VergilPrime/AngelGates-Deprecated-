@@ -38,7 +38,6 @@ public class Gate {
     public static final int ENTRANCE = -2;
     public static final int CONTROL = -3;
     public static final int EXIT = -4;
-    public static final int REDSTONE = -5;
     private static HashMap<String, Gate> gates = new HashMap<String, Gate>();
     private static HashMap<Integer, ArrayList<Gate>> controlBlocks = new HashMap<Integer, ArrayList<Gate>>();
     private static HashSet<Integer> frameBlocks = new HashSet<Integer>();

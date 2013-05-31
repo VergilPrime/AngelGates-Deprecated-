@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import me.entityreborn.AngelGates.Networks.Network;
 import me.entityreborn.AngelGates.events.AngelGatesActivateEvent;
 import me.entityreborn.AngelGates.events.AngelGatesCloseEvent;
@@ -53,13 +54,13 @@ import org.bukkit.util.Vector;
  */
 public class Portal {
     // Static variables used to store portal lists
-
     private static final HashMap<Blox, Portal> lookupBlocks = new HashMap<Blox, Portal>();
     private static final HashMap<Blox, Portal> lookupEntrances = new HashMap<Blox, Portal>();
     private static final HashMap<Blox, Portal> lookupControls = new HashMap<Blox, Portal>();
     private static final ArrayList<Portal> allPortals = new ArrayList<Portal>();
     private static final HashMap<String, ArrayList<String>> allPortalsNet = new HashMap<String, ArrayList<String>>();
     private static final HashMap<String, HashMap<String, Portal>> lookupNamesNet = new HashMap<String, HashMap<String, Portal>>();
+    
     // Gate location block info
     private Blox topLeft;
     private int modX;
@@ -76,8 +77,6 @@ public class Portal {
     private String lastDest = "";
     private String network;
     private Gate gate;
-    private String owner = "";
-    private World world;
     private boolean verified;
     // In-use information
     private ArrayList<String> destinations = new ArrayList<String>();
@@ -88,7 +87,7 @@ public class Portal {
     private Portal(Blox topLeft, int modX, int modZ,
             float rotX, Blox id, Blox button,
             String name,
-            boolean verified, String network, Gate gate, String owner) {
+            boolean verified, String network, Gate gate) {
         this.topLeft = topLeft;
         this.modX = modX;
         this.modZ = modZ;
@@ -99,8 +98,6 @@ public class Portal {
         this.network = network;
         this.name = name;
         this.gate = gate;
-        this.owner = owner;
-        this.world = topLeft.getWorld();
 
         if (verified) {
             this.drawSign();
@@ -166,14 +163,6 @@ public class Portal {
         return gate;
     }
 
-    public String getOwner() {
-        return owner;
-    }
-
-    public void setOwner(String owner) {
-        this.owner = owner;
-    }
-
     public Blox[] getEntrances() {
         if (entrances == null) {
             RelativeBlockVector[] space = gate.getEntrances();
@@ -206,7 +195,7 @@ public class Portal {
     }
 
     public World getWorld() {
-        return world;
+        return topLeft.getWorld();
     }
 
     public Block getButton() {
@@ -225,10 +214,6 @@ public class Portal {
     }
     
     public Network getNetwork() {
-        if (!Networks.has(getNetworkName())) {
-            return Networks.add(name, owner);
-        }
-        
         return Networks.get(getNetworkName());
     }
 
@@ -365,7 +350,7 @@ public class Portal {
     }
 
     public void teleport(final Vehicle vehicle) {
-        Location traveller = new Location(this.world, vehicle.getLocation().getX(), vehicle.getLocation().getY(), vehicle.getLocation().getZ());
+        Location traveller = new Location(getWorld(), vehicle.getLocation().getX(), vehicle.getLocation().getY(), vehicle.getLocation().getZ());
         Location exit = getExit(traveller);
 
         double velocity = vehicle.getVelocity().length();
@@ -600,7 +585,7 @@ public class Portal {
         if (!isActive()) {
             AngelGates.setLine(sign, done, "-" + getNetwork().getName() + "-");
             AngelGates.setLine(sign, ++done, "-" + name + "-");
-            AngelGates.setLine(sign, ++done, "-" + owner + "-");
+            AngelGates.setLine(sign, ++done, "-" + getNetwork().getOwner() + "-");
         } else {
             int index = destinations.indexOf(destination);
             AngelGates.setLine(sign, done, "-" + name + "-");
@@ -699,11 +684,8 @@ public class Portal {
             AngelGates.debug("register", "Network " + getNetworkName() + " not in lookupNamesNet, adding");
             lookupNamesNet.put(netname, new HashMap<String, Portal>());
         }
-        lookupNamesNet.get(netname).put(getName().toLowerCase(), this);
         
-        if (!Networks.has(netname)) {
-            Networks.add(getNetworkName(), owner);
-        }
+        lookupNamesNet.get(netname).put(getName().toLowerCase(), this);
         
         // Check if this network exists
         if (!allPortalsNet.containsKey(netname)) {
@@ -846,7 +828,12 @@ public class Portal {
 
         Blox button = null;
         Portal portal;
-        portal = new Portal(topleft, modX, modZ, rotX, id, button, name, false, network, gate, player.getName());
+        
+        if (!Networks.has(network)) {
+            Networks.add(network, player.getName());
+        }
+        
+        portal = new Portal(topleft, modX, modZ, rotX, id, button, name, false, network, gate);
 
         int cost = AngelGates.getCreateCost(player, gate);
 
@@ -954,10 +941,19 @@ public class Portal {
         
         YamlConfiguration yaml = new YamlConfiguration();
         
+        try {
+            if (file.exists()) {
+                yaml.load(file);
+            }
+        } catch (Exception ex) {
+            Logger.getLogger(Portal.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
         ConfigurationSection root = yaml.createSection("portals");
         
         for (Portal portal : allPortals) {
-            String wName = portal.world.getName();
+            String wName = portal.getWorld().getName();
+            
             if (!wName.equalsIgnoreCase(world.getName())) {
                 continue;
             }
@@ -975,8 +971,7 @@ public class Portal {
             portalsect.set("topLeft", portal.topLeft.toString());
             portalsect.set("gate", portal.gate.getFilename());
             portalsect.set("network", portal.getNetworkName());
-            portalsect.set("owner", portal.getOwner());
-            portalsect.set("world", portal.world.getName());
+            portalsect.set("world", portal.getWorld().getName());
         }
 
         try {
@@ -1046,6 +1041,7 @@ public class Portal {
 
                     String sgate = portalsect.getString("gate");
                     Gate gate = (sgate.contains(";")) ? Gate.getGateByName("nethergate.gate") : Gate.getGateByName(sgate);
+                    
                     if (gate == null) {
                         AngelGates.log.info("Gate layout for " + key + " does not exist [" + sgate + "]");
                         continue;
@@ -1055,16 +1051,21 @@ public class Portal {
                     if (network.isEmpty()) {
                         network = AngelGates.getDefaultNetwork();
                     }
-
+                    
+                    if (!Networks.has(network)) {
+                        AngelGates.log.info("Network " + network + " for " + key + " does not exist. Skipping for now.");
+                        continue;
+                    }
+                    
                     int modX = Integer.parseInt(portalsect.getString("modX"));
                     int modZ = Integer.parseInt(portalsect.getString("modZ"));
                     float rotX = Float.parseFloat(portalsect.getString("rotX"));
                     Blox topLeft = new Blox(world, portalsect.getString("topLeft"));
-                    String owner = portalsect.getString("owner");
-
-                    Portal portal = new Portal(topLeft, modX, modZ, rotX, sign, button, key, false, network, gate, owner);
+                    
+                    Portal portal = new Portal(topLeft, modX, modZ, rotX, sign, button, key, false, network, gate);
                     portal.register();
                     portal.close(true);
+                    
                     portalCount++;
                 } catch (Exception e) {
                     AngelGates.log.log(Level.SEVERE, "Malformed data for portal " + key + " in " + file.getName() + ": " + e.getMessage());

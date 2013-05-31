@@ -6,6 +6,7 @@ package me.entityreborn.AngelGates;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,8 +14,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
@@ -113,6 +116,11 @@ public class Networks {
 
         void setOwner(String other) {
             owner = other.toLowerCase();
+            
+            for (String pname : Portal.getNetwork(name)) {
+                Portal p = Portal.getByName(pname, name);
+                p.drawSign();
+            }
         }
     }
     
@@ -238,6 +246,15 @@ public class Networks {
     public static void save(String dir) {
         File config = new File(dir, "networks.yml");
         YamlConfiguration yaml = new YamlConfiguration();
+        
+        try {
+            if (config.exists()) {
+                yaml.load(config);
+            }
+        } catch (Exception ex) {
+            AngelGates.log.log(Level.SEVERE, "Could not load network/userlimit database!", ex);
+            return;
+        }
         
         ConfigurationSection netsect = yaml.createSection("networks");
         

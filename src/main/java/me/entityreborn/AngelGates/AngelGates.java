@@ -46,6 +46,7 @@ import org.bukkit.plugin.java.JavaPlugin;
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 public class AngelGates extends JavaPlugin {
+
     public static Permission permissions = null;
     public static Logger log;
     public static Plugin self;
@@ -74,7 +75,7 @@ public class AngelGates extends JavaPlugin {
     public static ConcurrentLinkedQueue<Portal> activeList = new ConcurrentLinkedQueue<Portal>();
     // Used for populating gate open/closed material.
     public static Queue<BloxPopulator> blockPopulatorQueue = new LinkedList<BloxPopulator>();
-    
+
     public static void debug(String rout, String msg) {
         if (AngelGates.debug) {
             log.info("[AngelGate::" + rout + "] " + msg);
@@ -82,14 +83,14 @@ public class AngelGates extends JavaPlugin {
             log.log(Level.FINEST, "[AngelGate::" + rout + "] " + msg);
         }
     }
-    
+
     private boolean setupPermissions() {
         RegisteredServiceProvider<Permission> permissionProvider = getServer().getServicesManager().getRegistration(Permission.class);
-        
+
         if (permissionProvider != null) {
             permissions = permissionProvider.getProvider();
         }
-        
+
         return permissions != null;
     }
 
@@ -161,7 +162,7 @@ public class AngelGates extends JavaPlugin {
         if (permissions != null) {
             return permissions.has(sender, perm);
         }
-        
+
         return sender.hasPermission(perm);
     }
 
@@ -188,7 +189,7 @@ public class AngelGates extends JavaPlugin {
                 || hasPerm(player, "AngelGates.admin.create")) {
             return true;
         }
-        
+
         if (network.equalsIgnoreCase(defNetwork)) {
             sendMessage(player, AngelGates.getString("createNetRestricted"));
             return false;
@@ -197,9 +198,9 @@ public class AngelGates extends JavaPlugin {
         if (Networks.has(network)) {
             return Networks.get(network).isMember(player.getName());
         }
-        
+
         int limit = Networks.getNetworkLimit(player.getName());
-        
+
         if (limit == -1) {
             return true;
         }
@@ -252,7 +253,7 @@ public class AngelGates extends JavaPlugin {
             return 0;
         }
         // Cost is 0 if the player owns this gate and funds go to the owner
-        if (src.getGate().getToOwner() && src.getOwner().equalsIgnoreCase(player.getName())) {
+        if (src.getGate().getToOwner() && src.getNetwork().isOwner(player.getName())) {
             return 0;
         }
         // Player gets free gate use
@@ -341,7 +342,7 @@ public class AngelGates extends JavaPlugin {
         } catch (Exception ex) {
             log.log(Level.SEVERE, "Error while setting up perms!", ex);
         }
-        
+
         PluginDescriptionFile pdfFile = this.getDescription();
         self = this;
         server = getServer();
@@ -432,50 +433,104 @@ public class AngelGates extends JavaPlugin {
         for (Portal p : openList) {
             p.close(true);
         }
-
+        
         Gate.loadGates(gateFolder);
+        
         // Replace nethergate.gate if it doesn't have an exit point.
         if (Gate.getGateByName("nethergate.gate") == null || Gate.getGateByName("nethergate.gate").getExit() == null) {
             Gate.populateDefaults(gateFolder);
         }
+        
         log.info("Loaded " + Gate.getGateCount() + " gate layouts");
+        
+        Networks.load(getDataFolder().getPath());
+        
         for (World world : getServer().getWorlds()) {
             Portal.loadAllGates(world);
         }
-
-        Networks.load(getDataFolder().getPath());
+        
     }
-    
+
     public boolean onCmdHelp(CommandSender sender, String[] args) {
         String which = (args.length != 0) ? args[0].toLowerCase() : "";
+        boolean nameinfo = false;
         
-        sender.sendMessage(ChatColor.GOLD + "/ag reload");
-        sender.sendMessage(ChatColor.WHITE + " - Reload the plugin configuration");
-        
-        sender.sendMessage(ChatColor.GOLD + "/ag info [player]");
-        sender.sendMessage(ChatColor.WHITE + " - Provide info about yourself or another player");
-        
-        sender.sendMessage(ChatColor.GOLD + "/ag netinfo <network>");
-        sender.sendMessage(ChatColor.WHITE + " - Provide info about <network>");
-        
-        sender.sendMessage(ChatColor.GOLD + "/ag setowner <network> <name>");
-        sender.sendMessage(ChatColor.WHITE + " - Set the owner of <network> to <name>");
-        
-        sender.sendMessage(ChatColor.GOLD + "/ag setnetworks <name> <amount>");
-        sender.sendMessage(ChatColor.WHITE + " - Set the networklimit of <player> to <amount>");
-        sender.sendMessage(ChatColor.WHITE + "   Use -1 for infinite, and 0 for none");
-        
-        sender.sendMessage(ChatColor.GOLD + "/ag addnetworks <name> <amount>");
-        sender.sendMessage(ChatColor.WHITE + " - Add to the networklimit of <player>");
-        
-        sender.sendMessage(ChatColor.GOLD + "/ag addmember <network> <name>");
-        sender.sendMessage(ChatColor.WHITE + " - Add a user, group or town to <network>");
-        
-        sender.sendMessage(ChatColor.GOLD + "/ag remmember <network> <name>");
-        sender.sendMessage(ChatColor.WHITE + " - Remove a user, group or town from <network>");
-        
-        sender.sendMessage(ChatColor.BLUE + "Prefix a name with g: to specify a group or");
-        sender.sendMessage(ChatColor.WHITE + "t: to specify a town.");
+        if (which.isEmpty() || which.equals("reload")) {
+            sender.sendMessage(ChatColor.GOLD + "/ag reload");
+            sender.sendMessage(ChatColor.WHITE + " - Reload the plugin configuration");
+
+            if (!which.isEmpty()) {
+                return true;
+            }
+        }
+
+        if (which.isEmpty() || which.equals("info")) {
+            sender.sendMessage(ChatColor.GOLD + "/ag info [player]");
+            sender.sendMessage(ChatColor.WHITE + " - Provide info about yourself or another player");
+            nameinfo = true;
+            if (!which.isEmpty()) {
+                return true;
+            }
+        }
+
+        if (which.isEmpty() || which.equals("netinfo")) {
+            sender.sendMessage(ChatColor.GOLD + "/ag netinfo <network>");
+            sender.sendMessage(ChatColor.WHITE + " - Provide info about <network>");
+            if (!which.isEmpty()) {
+                return true;
+            }
+        }
+
+        if (which.isEmpty() || which.equals("setowner")) {
+            sender.sendMessage(ChatColor.GOLD + "/ag setowner <network> <name>");
+            sender.sendMessage(ChatColor.WHITE + " - Set the owner of <network> to <name>");
+            nameinfo = true;
+            if (!which.isEmpty()) {
+                return true;
+            }
+        }
+
+        if (which.isEmpty() || which.equals("setnetworks")) {
+            sender.sendMessage(ChatColor.GOLD + "/ag setnetworks <name> <amount>");
+            sender.sendMessage(ChatColor.WHITE + " - Set the networklimit of <player> to <amount>");
+            sender.sendMessage(ChatColor.WHITE + " - Use -1 for infinite, and 0 for none");
+            nameinfo = true;
+            if (!which.isEmpty()) {
+                return true;
+            }
+        }
+
+        if (which.isEmpty() || which.equals("addnetworks")) {
+            sender.sendMessage(ChatColor.GOLD + "/ag addnetworks <name> <amount>");
+            sender.sendMessage(ChatColor.WHITE + " - Add to the networklimit of <player>");
+            nameinfo = true;
+            if (!which.isEmpty()) {
+                return true;
+            }
+        }
+
+        if (which.isEmpty() || which.equals("addmember")) {
+            sender.sendMessage(ChatColor.GOLD + "/ag addmember <network> <name>");
+            sender.sendMessage(ChatColor.WHITE + " - Add a user, group or town to <network>");
+            nameinfo = true;
+            if (!which.isEmpty()) {
+                return true;
+            }
+        }
+
+        if (which.isEmpty() || which.equals("remmember")) {
+            sender.sendMessage(ChatColor.GOLD + "/ag remmember <network> <name>");
+            sender.sendMessage(ChatColor.WHITE + " - Remove a user, group or town from <network>");
+            nameinfo = true;
+            if (!which.isEmpty()) {
+                return true;
+            }
+        }
+
+        if (nameinfo) {
+            sender.sendMessage(ChatColor.BLUE + "Prefix a name with g: to specify a group or");
+            sender.sendMessage(ChatColor.BLUE + "t: to specify a town.");
+        }
         
         return true;
     }
@@ -529,343 +584,334 @@ public class AngelGates extends JavaPlugin {
 
         return true;
     }
-    
+
     private boolean onCmdAddMember(CommandSender sender, String[] args) {
         if (args.length == 3) {
             String net = args[1];
             String other = args[2];
             Network network = Networks.get(net);
-            
+
             if (network == null) {
                 sendMessage(sender, "Unknown network");
-                
+
                 return true;
             }
-            
-            if (!network.isOwner(sender.getName()) &&
-                    !hasPerm(sender, "angelgates.commands") &&
-                    !hasPerm(sender, "angelgates.commands.addmember")) {
+
+            if (!network.isOwner(sender.getName())
+                    && !hasPerm(sender, "angelgates.commands")
+                    && !hasPerm(sender, "angelgates.commands.addmember")) {
                 sendMessage(sender, "Permission Denied");
-                
+
                 return true;
             }
-            
-            if (!other.startsWith("g:") && !other.startsWith("t:") &&
-                    Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+
+            if (!other.startsWith("g:") && !other.startsWith("t:")
+                    && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
                 sendMessage(sender, other + " has never joined this server!");
-                
+
                 return true;
             }
-            
+
             if (network.isMember(other)) {
                 sendMessage(sender, other + " is already a member of this network");
-                
+
                 return true;
             }
-            
+
             network.addMember(other);
             sendMessage(sender, other + " has been added to the network!", false);
-            
+
             return true;
         }
-        
+
         return false;
     }
-    
+
     private boolean onCmdRemMember(CommandSender sender, String[] args) {
         if (args.length == 3) {
             String net = args[1];
             String other = args[2];
             Network network = Networks.get(net);
-            
+
             if (network == null) {
                 sendMessage(sender, "Unknown network");
-                
+
                 return true;
             }
-            
-            if (!network.isOwner(sender.getName()) &&
-                    !hasPerm(sender, "angelgates.commands") &&
-                    !hasPerm(sender, "angelgates.commands.remmember")) {
+
+            if (!network.isOwner(sender.getName())
+                    && !hasPerm(sender, "angelgates.commands")
+                    && !hasPerm(sender, "angelgates.commands.remmember")) {
                 sendMessage(sender, "Permission denied", true);
-                
+
                 return true;
             }
-            
+
             if (!network.isMember(other)) {
                 sendMessage(sender, other + " is not a member of this network");
-                
+
                 return true;
             }
-            
+
             network.removeMember(other);
             sendMessage(sender, other + " has been removed from the network!", false);
-            
+
             return true;
         }
-        
+
         return false;
     }
-    
+
     private boolean onCmdSetOwner(CommandSender sender, String[] args) {
         if (args.length == 3) {
             String net = args[1];
             String other = args[2];
             Network network = Networks.get(net);
-            
+
             if (network == null) {
                 sendMessage(sender, "Unknown network");
-                
+
                 return true;
             }
-            
-            if (!network.isOwner(sender.getName()) &&
-                    !hasPerm(sender, "angelgates.commands") &&
-                    !hasPerm(sender, "angelgates.commands.setowner")) {
+
+            if (!network.isOwner(sender.getName())
+                    && !hasPerm(sender, "angelgates.commands")
+                    && !hasPerm(sender, "angelgates.commands.setowner")) {
                 sendMessage(sender, "Permission denied");
-                
+
                 return true;
             }
-            
-            if (!other.startsWith("g:") && !other.startsWith("t:") &&
-                    Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+
+            if (!other.startsWith("g:") && !other.startsWith("t:")
+                    && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
                 sendMessage(sender, other + " has never joined this server");
-                
+
                 return true;
             }
-            
+
             if (!network.isMember(other)) {
                 sendMessage(sender, other + " must be a member of this network to become owner!");
-                
+
                 return true;
             }
-            
+
             if (network.isOwner(sender.getName())) {
                 sendMessage(sender, other + " has been set as network owner! You have been demoted to member.", false);
             } else {
                 sendMessage(sender, other + " has been set as network owner! " + network.getOwner() + " has been demoted to member.", false);
             }
-            
+
             network.setOwner(other);
-            
+
             return true;
         }
-        
+
         return false;
     }
-    
+
     private boolean onCmdNetInfo(CommandSender sender, String[] args) {
         if (args.length == 2) {
             String net = args[1];
             Network network = Networks.get(net);
-            
+
             if (network == null) {
                 sendMessage(sender, "Unknown network");
-                
+
                 return true;
             }
-            
+
             sendMessage(sender, "Name: " + network.getName());
             sendMessage(sender, "Owner: " + network.getOwner());
-            
+
             StringBuilder sb = new StringBuilder();
             boolean first = true;
-            
-            for (String item : network.getMembers()){
-               if (first)
-                  first = false;
-               else
-                  sb.append(", ");
-               sb.append(item);
+
+            for (String item : network.getMembers()) {
+                if (first) {
+                    first = false;
+                } else {
+                    sb.append(", ");
+                }
+                sb.append(item);
             }
-            
+
             sendMessage(sender, "Members: " + sb.toString());
-        } 
-        
+        }
+
         return true;
     }
-    
+
     private boolean onCmdInfo(CommandSender sender, String[] args) {
         String name = sender.getName();
-        
+
         if (!(sender instanceof Player) && args.length < 2) {
             sendMessage(sender, "You must specify a player's name");
             return true;
         }
-        
+
         if (args.length >= 2) {
             name = args[1];
-            
-            if (!name.startsWith("g:") && !name.startsWith("t:") && 
-                    Bukkit.getServer().getOfflinePlayer(name).getFirstPlayed() == 0) {
+
+            if (!name.startsWith("g:") && !name.startsWith("t:")
+                    && Bukkit.getServer().getOfflinePlayer(name).getFirstPlayed() == 0) {
                 sendMessage(sender, name + " has never joined this server");
                 return true;
             }
         }
-        
+
         Set<Network> owned = Networks.getOwnedNetworks(name);
         int limit = Networks.getNetworkLimit(name);
-        
+
         StringBuilder sb = new StringBuilder();
         boolean first = true;
-        
-        for (Network item : owned){
-           if (first) {
-              first = false;
-           } else {
-              sb.append(", ");
-           }
-           
-           sb.append(item.getName());
+
+        for (Network item : owned) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(", ");
+            }
+
+            sb.append(item.getName());
         }
-        
+
         sendMessage(sender, "Owned networks: " + sb.toString());
         sendMessage(sender, owned.size() + " networks of " + (limit > -1 ? limit : "unlimited") + " owned.", false);
-        
+
         return true;
     }
-    
+
     private boolean onCmdSetNetworks(CommandSender sender, String[] args) {
-        if (!hasPerm(sender, "angelgates.commands") &&
-                !hasPerm(sender, "angelgates.commands.setnetworks")) {
+        if (!hasPerm(sender, "angelgates.commands")
+                && !hasPerm(sender, "angelgates.commands.setnetworks")) {
             sendMessage(sender, "Permission denied");
 
             return true;
         }
-        
+
         if (args.length != 3) {
             return false;
         }
-        
+
         String other = args[1];
-        
-        if (!other.startsWith("g:") && !other.startsWith("t:") && 
-                Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+
+        if (!other.startsWith("g:") && !other.startsWith("t:")
+                && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
             sendMessage(sender, other + " has never joined this server");
 
             return true;
         }
-        
+
         String samount = args[2];
         int amount;
-        
+
         try {
             amount = Integer.valueOf(samount);
         } catch (IllegalArgumentException e) {
             sendMessage(sender, "Must specifiy integer for amount for second argument");
             return true;
         }
-        
+
         if (amount < -1) {
             sendMessage(sender, "Number must be -1 or more!");
 
             return true;
         }
-        
+
         Networks.setNetworkLimit(other, amount);
-        
+
         sendMessage(sender, "Network limit for " + other + " set to " + (amount != -1 ? amount : "infinite"), false);
-        
+
         return true;
     }
-    
+
     private boolean onCmdAddNetworks(CommandSender sender, String[] args) {
-        if (!hasPerm(sender, "angelgates.commands") &&
-                !hasPerm(sender, "angelgates.commands.addnetworks")) {
+        if (!hasPerm(sender, "angelgates.commands")
+                && !hasPerm(sender, "angelgates.commands.addnetworks")) {
             sendMessage(sender, "Permission denied");
 
             return true;
         }
-        
+
         if (args.length != 3) {
             return false;
         }
-        
+
         String other = args[1];
-        
-        if (!other.startsWith("g:") && !other.startsWith("t:") && 
-                Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+
+        if (!other.startsWith("g:") && !other.startsWith("t:")
+                && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
             sendMessage(sender, other + " has never joined this server");
 
             return true;
         }
-        
+
         String samount = args[2];
         int amount;
-        
+
         try {
             amount = Integer.valueOf(samount);
         } catch (IllegalArgumentException e) {
             sendMessage(sender, "Must specifiy integer for amount for second argument");
             return true;
         }
-        
+
         if (amount < 1) {
             sendMessage(sender, "Number must be 1 or more!");
 
             return true;
         }
-        
+
         Networks.addNetworkLimit(other, amount);
-        
+
         int limit = Networks.getNetworkLimit(other);
-        
+
         sendMessage(sender, "Network limit for " + other + " set to " + limit, false);
-        
+
         return true;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         String cmd = command.getName();
-        
+        boolean retn = false;
+
         if (cmd.equalsIgnoreCase("ag")) {
-            if (args.length == 0|| args[0].equalsIgnoreCase("help")) {
+            if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
+                retn = onCmdHelp(sender, args);
+            } else if (args[0].equalsIgnoreCase("info")) {
+                retn = onCmdInfo(sender, args);
+            } else if (args[0].equalsIgnoreCase("netinfo")) {
+                retn = onCmdNetInfo(sender, args);
+            } else if (args[0].equalsIgnoreCase("reload")) {
+                retn = onCmdReload(sender, args);
+            } else if (args[0].equalsIgnoreCase("addmember")) {
+                retn = onCmdAddMember(sender, args);
+            } else if (args[0].equalsIgnoreCase("remmember")) {
+                retn = onCmdRemMember(sender, args);
+            } else if (args[0].equalsIgnoreCase("setowner")) {
+                retn = onCmdSetOwner(sender, args);
+            } else if (args[0].equalsIgnoreCase("setnetworks")) {
+                retn = onCmdSetNetworks(sender, args);
+            } else if (args[0].equalsIgnoreCase("addnetworks")) {
+                retn = onCmdAddNetworks(sender, args);
+            }
+
+            if (!retn) {
                 return onCmdHelp(sender, args);
             }
             
-            if (args[0].equalsIgnoreCase("info")) {
-                return onCmdInfo(sender, args);
-            }
-            
-            if (args[0].equalsIgnoreCase("netinfo")) {
-                return onCmdNetInfo(sender, args);
-            }
-
-            if (args[0].equalsIgnoreCase("reload")) {
-                return onCmdReload(sender, args);
-            }
-
-            if (args[0].equalsIgnoreCase("addmember")) {
-                return onCmdAddMember(sender, args);
-            }
-
-            if (args[0].equalsIgnoreCase("remmember")) {
-                return onCmdRemMember(sender, args);
-            }
-
-            if (args[0].equalsIgnoreCase("setowner")) {
-                return onCmdSetOwner(sender, args);
-            }
-
-            if (args[0].equalsIgnoreCase("setnetworks")) {
-                return onCmdSetNetworks(sender, args);
-            }
-            
-            if (args[0].equalsIgnoreCase("addnetworks")) {
-                return onCmdAddNetworks(sender, args);
-            }
-
-            return false;
+            return true;
         }
 
         return false;
     }
 
     private class BlockPopulatorThread implements Runnable {
+
         public void run() {
             long sTime = System.nanoTime();
-            
+
             while (System.nanoTime() - sTime < 50000000) {
                 BloxPopulator b = AngelGates.blockPopulatorQueue.poll();
                 if (b == null) {
@@ -878,38 +924,39 @@ public class AngelGates extends JavaPlugin {
     }
 
     private class SGThread implements Runnable {
+
         public void run() {
             long time = System.currentTimeMillis() / 1000;
-            
+
             // Close open portals
             for (Iterator<Portal> iter = AngelGates.openList.iterator(); iter.hasNext();) {
                 Portal p = iter.next();
-                
+
                 if (!p.isOpen()) {
                     iter.remove();
                     continue;
                 }
-                
+
                 if (p.getFirstEnteredTime() == 0 && time > p.getOpenTime() + AngelGates.openTime) {
                     p.close(true);
                     iter.remove();
                 }
-                
+
                 if (p.getFirstEnteredTime() != 0 && time > p.getFirstEnteredTime() + AngelGates.stayOpenTime) {
                     p.close(true);
                     iter.remove();
                 }
             }
-            
+
             // Deactivate active portals
             for (Iterator<Portal> iter = AngelGates.activeList.iterator(); iter.hasNext();) {
                 Portal p = iter.next();
-                
+
                 if (!p.isActive()) {
                     iter.remove();
                     continue;
                 }
-                
+
                 if (time > p.getOpenTime() + AngelGates.activeTime) {
                     p.deactivate();
                     iter.remove();
