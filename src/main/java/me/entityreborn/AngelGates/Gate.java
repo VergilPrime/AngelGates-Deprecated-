@@ -33,6 +33,27 @@ import org.bukkit.block.Block;
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 public class Gate {
+    public static class TypeData {
+        private int type;
+        private int data = 0;
+
+        public TypeData(int type, int data) {
+            this.type = type;
+            this.data = data;
+        }
+
+        private TypeData(int type) {
+            this.type = type;
+        }
+        
+        public int getType() {
+            return type;
+        }
+        
+        public int getData() {
+            return data;
+        }
+    }
 
     public static final int ANYTHING = -1;
     public static final int ENTRANCE = -2;
@@ -43,8 +64,7 @@ public class Gate {
     private static HashSet<Integer> frameBlocks = new HashSet<Integer>();
     private String filename;
     private Character[][] layout;
-    private HashMap<Character, Integer> types;
-    private HashMap<Character, Integer> metadata;
+    private HashMap<Character, TypeData> typedata;
     private RelativeBlockVector[] entrances = new RelativeBlockVector[0];
     private RelativeBlockVector[] border = new RelativeBlockVector[0];
     private RelativeBlockVector[] controls = new RelativeBlockVector[0];
@@ -58,11 +78,10 @@ public class Gate {
     private int destroyCost = -1;
     private boolean toOwner = false;
 
-    public Gate(String filename, Character[][] layout, HashMap<Character, Integer> types, HashMap<Character, Integer> metadata) {
+    public Gate(String filename, Character[][] layout, HashMap<Character, TypeData> typedata) {
         this.filename = filename;
         this.layout = layout;
-        this.metadata = metadata;
-        this.types = types;
+        this.typedata = typedata;
 
         populateCoordinates();
     }
@@ -77,7 +96,7 @@ public class Gate {
 
         for (int y = 0; y < layout.length; y++) {
             for (int x = 0; x < layout[y].length; x++) {
-                Integer id = types.get(layout[y][x]);
+                Integer id = typedata.get(layout[y][x]).getType();
                 if (layout[y][x] == '-') {
                     controlList.add(new RelativeBlockVector(x, y, 0));
                 }
@@ -139,8 +158,8 @@ public class Gate {
             
             writeConfig(bw, "pay-owner", toOwner);
 
-            for (Character type : types.keySet()) {
-                Integer value = types.get(type);
+            for (Character type : typedata.keySet()) {
+                Integer value = typedata.get(type).getType();
                 // Skip control values
                 if (value < 0) {
                     continue;
@@ -149,9 +168,9 @@ public class Gate {
                 bw.append(type);
                 bw.append('=');
                 bw.append(value.toString());
-                Integer mData = metadata.get(type);
+                Integer mData = typedata.get(type).getData();
                 // Append metadata
-                if (mData != null) {
+                if (mData != 0) {
                     bw.append(':');
                     bw.append(mData.toString());
                 }
@@ -188,12 +207,8 @@ public class Gate {
         return layout;
     }
 
-    public HashMap<Character, Integer> getTypes() {
-        return types;
-    }
-
-    public HashMap<Character, Integer> getMetaData() {
-        return metadata;
+    public HashMap<Character, TypeData> getTypeData() {
+        return typedata;
     }
 
     public RelativeBlockVector[] getEntrances() {
@@ -217,7 +232,7 @@ public class Gate {
     }
 
     public int getControlBlock() {
-        return types.get('-');
+        return typedata.get('-').getType();
     }
 
     public String getFilename() {
@@ -272,7 +287,7 @@ public class Gate {
     public boolean matches(Blox topleft, int modX, int modZ, boolean onCreate) {
         for (int y = 0; y < layout.length; y++) {
             for (int x = 0; x < layout[y].length; x++) {
-                int id = types.get(layout[y][x]);
+                int id = typedata.get(layout[y][x]).getType();
 
                 if (id == ENTRANCE || id == EXIT) {
                     // TODO: Remove once snowmanTrailEvent is added
@@ -308,8 +323,8 @@ public class Gate {
                         AngelGates.debug("Gate::Matches", "Block Type Mismatch: " + topleft.modRelative(x, y, 0, modX, 1, modZ).getType() + " != " + id);
                         return false;
                     }
-                    Integer mData = metadata.get(layout[y][x]);
-                    if (mData != null && topleft.modRelative(x, y, 0, modX, 1, modZ).getData() != mData) {
+                    Integer mData = typedata.get(layout[y][x]).getData();
+                    if (mData != 0 && topleft.modRelative(x, y, 0, modX, 1, modZ).getData() != mData) {
                         AngelGates.debug("Gate::Matches", "Block Data Mismatch: " + topleft.modRelative(x, y, 0, modX, 1, modZ).getData() + " != " + mData);
                         return false;
                     }
@@ -336,16 +351,15 @@ public class Gate {
         Scanner scanner = null;
         boolean designing = false;
         ArrayList<ArrayList<Character>> design = new ArrayList<ArrayList<Character>>();
-        HashMap<Character, Integer> types = new HashMap<Character, Integer>();
-        HashMap<Character, Integer> metadata = new HashMap<Character, Integer>();
+        HashMap<Character, TypeData> typedata = new HashMap<Character, TypeData>();
         HashMap<String, String> config = new HashMap<String, String>();
         HashSet<Integer> frameTypes = new HashSet<Integer>();
         int cols = 0;
 
         // Init types map
-        types.put('.', ENTRANCE);
-        types.put('*', EXIT);
-        types.put(' ', ANYTHING);
+        typedata.put('.', new TypeData(ENTRANCE));
+        typedata.put('*', new TypeData(EXIT));
+        typedata.put(' ', new TypeData(ANYTHING));
 
         try {
             scanner = new Scanner(file);
@@ -361,7 +375,7 @@ public class Gate {
                     }
 
                     for (Character symbol : line.toCharArray()) {
-                        if ((symbol.equals('?')) || (!types.containsKey(symbol))) {
+                        if ((symbol.equals('?')) || (!typedata.containsKey(symbol))) {
                             AngelGates.log.log(Level.SEVERE, "Could not load Gate " + file.getName() + " - Unknown symbol '" + symbol + "' in diagram");
                             return null;
                         }
@@ -379,16 +393,17 @@ public class Gate {
 
                         if (key.length() == 1) {
                             Character symbol = key.charAt(0);
+                            int meta = 0;
                             // Check for metadata
                             if (value.contains(":")) {
                                 split = value.split(":");
                                 value = split[0].trim();
                                 String mData = split[1].trim();
-                                metadata.put(symbol, Integer.parseInt(mData));
+                                meta = Integer.parseInt(mData);
                             }
                             Integer id = Integer.parseInt(value);
 
-                            types.put(symbol, id);
+                            typedata.put(symbol, new TypeData(id, meta));
                             frameTypes.add(id);
                         } else {
                             config.put(key, value);
@@ -422,7 +437,7 @@ public class Gate {
             layout[y] = result;
         }
 
-        Gate gate = new Gate(file.getName(), layout, types, metadata);
+        Gate gate = new Gate(file.getName(), layout, typedata);
 
         gate.portalBlockOpen = readConfig(config, gate, file, "portal-open", gate.portalBlockOpen);
         gate.portalBlockClosed = readConfig(config, gate, file, "portal-closed", gate.portalBlockClosed);
@@ -479,22 +494,20 @@ public class Gate {
     }
 
     public static void populateDefaults(String gateFolder) {
-        int Obsidian = Material.OBSIDIAN.getId();
+        int obby = Material.OBSIDIAN.getId();
         Character[][] layout = new Character[][]{
             {' ', 'X', 'X', ' '},
             {'X', '.', '.', 'X'},
             {'-', '.', '.', '-'},
             {'X', '*', '.', 'X'},
             {' ', 'X', 'X', ' '},};
-        HashMap<Character, Integer> types = new HashMap<Character, Integer>();
-        types.put('.', ENTRANCE);
-        types.put('*', EXIT);
-        types.put(' ', ANYTHING);
-        types.put('X', Obsidian);
-        types.put('-', Obsidian);
-        HashMap<Character, Integer> metadata = new HashMap<Character, Integer>();
-
-        Gate gate = new Gate("nethergate.gate", layout, types, metadata);
+        HashMap<Character, TypeData> typedata = new HashMap<Character, TypeData>();
+        typedata.put('.', new TypeData(ENTRANCE));
+        typedata.put('*', new TypeData(EXIT));
+        typedata.put(' ', new TypeData(ANYTHING));
+        typedata.put('X', new TypeData(obby));
+        typedata.put('-', new TypeData(obby));
+        Gate gate = new Gate("nethergate.gate", layout, typedata);
         gate.save(gateFolder);
         registerGate(gate);
     }

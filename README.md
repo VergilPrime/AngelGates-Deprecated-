@@ -65,7 +65,7 @@ Then you place a sign in the middle of either of the vertical walls, following t
 ##Custom Gates##
 
 You can create as many gate formats as you want, the gate layouts are stored in plugins/AngelGates/gates/
-The .gate file must be laid out a specific way, the first lines will be config information, and after a blank line you will lay out the gate format. Here is the default nether.gate file:
+The .gate file must be laid out a specific way, the first lines will be config information, and after a blank line you will lay out the gate format. Here is the default nethergate.gate file:
 
     portal-open=90
     portal-closed=0
@@ -79,16 +79,17 @@ The .gate file must be laid out a specific way, the first lines will be config i
      XX 
 
 In this example, portal-open/closed are used to define the material in the gate when it is open or closed. 
-"X" and "-" are used to define block "types" for the layout (Any single-character can be used, such as "#").
+"X" and "-" are used to define block "types" for the layout (Any single-character can be used, such as "#"). You can use as many character definitions as you need, and the gate can be any dimensions.
 
 In the gate format, you can see we use "X" to show where obsidian must be, "-" where the controls (Button/sign) are.
 You will also notice a "*" in the gate layout, this is the "exit point" of the gate, the block at which the player will teleport in front of.
 
-You can supply block data in the format `X=35:15` which would only allow black wool. If no data is supplied any version of a block will work (Any color of wool for example)
+You can supply block data in the format `X=35:15` which would only allow black wool. If no data is supplied any version of a block will work (any color of wool, for example).
 
 ##Credits##
 
 `Dinnerbone` - Original hMod version.
 
-`TheDgtl` - Bukkit port. (see [here][thedgtl] for source)
+`TheDgtl` - Bukkit port of the hMod version. (see [here][thedgtl] for source)
 [thedgtl]: http://github.com/TheDgtl/Stargate-Bukkit
+

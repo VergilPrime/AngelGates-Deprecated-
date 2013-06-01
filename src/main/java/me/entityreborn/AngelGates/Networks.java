@@ -117,36 +117,36 @@ public class Networks {
 
         void setOwner(String other) {
             owner = other.toLowerCase();
-            Networks.save();
             
             for (String pname : Portal.getNetwork(name)) {
                 Portal p = Portal.getByName(pname, name);
                 p.drawSign();
             }
+            
+            Networks.save();
         }
     }
     
     private static Map<String, Network> networks = new HashMap<String, Network>();
-    private static Map<String, Integer> playerNetworkLimit = new HashMap<String, Integer>();
+    private static Map<String, Integer> networkLimit = new HashMap<String, Integer>();
     private static File file;
     
     public static int getNetworkLimit(String player) {
-        if (!playerNetworkLimit.containsKey(player.toLowerCase())) {
+        if (!networkLimit.containsKey(player.toLowerCase())) {
             return AngelGates.defaultNetsPerPlayer;
         }
         
-        return playerNetworkLimit.get(player.toLowerCase());
+        return networkLimit.get(player.toLowerCase());
     }
     
     public static void setNetworkLimit(String player, int limit) {
-        playerNetworkLimit.put(player.toLowerCase(), limit);
-        save();
+        networkLimit.put(player.toLowerCase(), limit);
     }
     
     static void addNetworkLimit(String other, int amount) {
-        int limit = getNetworkLimit(other) + amount;
-        playerNetworkLimit.put(other, limit);
-        save();
+        int limit = getNetworkLimit(other.toLowerCase()) + amount;
+        
+        networkLimit.put(other.toLowerCase(), limit);
     }
     
     public static Set<Network> getOwnedNetworks(String player) {
@@ -164,13 +164,17 @@ public class Networks {
     public static Network add(String name, String owner) {
         Network net = new Network(name, owner);
         networks.put(name.toLowerCase(), net);
+        
         save();
+        
         return net;
     }
     
     public static Network add(Network net) {
         networks.put(net.getName().toLowerCase(), net);
+        
         save();
+        
         return net;
     }
     
@@ -188,16 +192,28 @@ public class Networks {
     
     public static void clear() {
         networks = new HashMap<String, Network>();
+        networkLimit = new HashMap<String, Integer>();
     }
     
     public static void load(String dir) {
         file = new File(dir, "networks.yml");
+        load();
+    }
+    
+    public static void load() {
+        if (file == null) {
+            return;
+        }
+        
+        clear();
+        
         YamlConfiguration yaml = new YamlConfiguration();
         
         try {
             yaml.load(file);
         } catch (FileNotFoundException fnf) {
-            // Fine.
+            AngelGates.log.info("Could not load network database. File not found.");
+            return;
         } catch (Exception ex) {
             AngelGates.log.log(Level.SEVERE, "Could not load network database!", ex);
             return;
@@ -214,7 +230,7 @@ public class Networks {
                 ConfigurationSection sect = limits.getConfigurationSection(user);
 
                 if (sect.isInt("netlimit")) {
-                    playerNetworkLimit.put(user.toLowerCase(), sect.getInt("netlimit"));
+                    networkLimit.put(user.toLowerCase(), sect.getInt("netlimit"));
                 } else if (sect.contains("netlimit")) {
                     AngelGates.log.warning("'netlimit' for user '" + user + "' is malformed. Ignoring!");
                 }
@@ -243,7 +259,7 @@ public class Networks {
                     List<String> members = sect.getStringList("members");
 
                     for(String member : members) {
-                        net.addMember(member);
+                        net.members.add(member);
                     }
                 }
 
@@ -259,15 +275,6 @@ public class Networks {
         
         YamlConfiguration yaml = new YamlConfiguration();
         
-        try {
-            if (file.exists()) {
-                yaml.load(file);
-            }
-        } catch (Exception ex) {
-            AngelGates.log.log(Level.SEVERE, "Could not load network/userlimit database!", ex);
-            return;
-        }
-        
         ConfigurationSection netsect = yaml.createSection("networks");
         
         for (Network net: networks.values()) {
@@ -282,7 +289,7 @@ public class Networks {
         
         ConfigurationSection usersect = yaml.createSection("users");
         
-        for (String user: playerNetworkLimit.keySet()) {
+        for (String user: networkLimit.keySet()) {
             ConfigurationSection sect = usersect.createSection(user);
             
             sect.set("netlimit", getNetworkLimit(user));

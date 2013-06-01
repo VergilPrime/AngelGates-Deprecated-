@@ -478,6 +478,7 @@ public class AngelGates extends JavaPlugin {
             sender.sendMessage(ChatColor.GOLD + "/ag info [player]");
             sender.sendMessage(ChatColor.WHITE + " - Provide info about yourself or another player");
             nameinfo = true;
+            
             if (!which.isEmpty()) {
                 return true;
             }
@@ -486,6 +487,7 @@ public class AngelGates extends JavaPlugin {
         if (which.isEmpty() || which.equals("netinfo")) {
             sender.sendMessage(ChatColor.GOLD + "/ag netinfo <network>");
             sender.sendMessage(ChatColor.WHITE + " - Provide info about <network>");
+            
             if (!which.isEmpty()) {
                 return true;
             }
@@ -495,6 +497,7 @@ public class AngelGates extends JavaPlugin {
             sender.sendMessage(ChatColor.GOLD + "/ag setowner <network> <name>");
             sender.sendMessage(ChatColor.WHITE + " - Set the owner of <network> to <name>");
             nameinfo = true;
+            
             if (!which.isEmpty()) {
                 return true;
             }
@@ -505,6 +508,7 @@ public class AngelGates extends JavaPlugin {
             sender.sendMessage(ChatColor.WHITE + " - Set the networklimit of <player> to <amount>");
             sender.sendMessage(ChatColor.WHITE + " - Use -1 for infinite, and 0 for none");
             nameinfo = true;
+            
             if (!which.isEmpty()) {
                 return true;
             }
@@ -514,6 +518,7 @@ public class AngelGates extends JavaPlugin {
             sender.sendMessage(ChatColor.GOLD + "/ag addnetworks <name> <amount>");
             sender.sendMessage(ChatColor.WHITE + " - Add to the networklimit of <player>");
             nameinfo = true;
+            
             if (!which.isEmpty()) {
                 return true;
             }
@@ -523,6 +528,7 @@ public class AngelGates extends JavaPlugin {
             sender.sendMessage(ChatColor.GOLD + "/ag addmember <network> <name>");
             sender.sendMessage(ChatColor.WHITE + " - Add a user, group or town to <network>");
             nameinfo = true;
+            
             if (!which.isEmpty()) {
                 return true;
             }
@@ -532,6 +538,7 @@ public class AngelGates extends JavaPlugin {
             sender.sendMessage(ChatColor.GOLD + "/ag remmember <network> <name>");
             sender.sendMessage(ChatColor.WHITE + " - Remove a user, group or town from <network>");
             nameinfo = true;
+            
             if (!which.isEmpty()) {
                 return true;
             }
@@ -549,7 +556,6 @@ public class AngelGates extends JavaPlugin {
         if (!hasPerm(sender, "angelgates.commands")
                 && !hasPerm(sender, "angelgates.commands.reload")) {
             sendMessage(sender, "Permission Denied");
-
             return true;
         }
 
@@ -562,12 +568,14 @@ public class AngelGates extends JavaPlugin {
         for (Portal p : openList) {
             p.close(true);
         }
+        
         // Clear all lists
         activeList.clear();
         openList.clear();
 
         Portal.clearGates();
         Gate.clearGates();
+        Networks.clear();
 
         // Reload data
         loadConfig();
@@ -603,7 +611,6 @@ public class AngelGates extends JavaPlugin {
 
             if (network == null) {
                 sendMessage(sender, "Unknown network");
-
                 return true;
             }
 
@@ -611,20 +618,17 @@ public class AngelGates extends JavaPlugin {
                     && !hasPerm(sender, "angelgates.commands")
                     && !hasPerm(sender, "angelgates.commands.addmember")) {
                 sendMessage(sender, "Permission Denied");
-
                 return true;
             }
 
             if (!other.startsWith("g:") && !other.startsWith("t:")
                     && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
                 sendMessage(sender, other + " has never joined this server!");
-
                 return true;
             }
 
             if (network.isMember(other)) {
                 sendMessage(sender, other + " is already a member of this network");
-
                 return true;
             }
 
@@ -645,7 +649,6 @@ public class AngelGates extends JavaPlugin {
 
             if (network == null) {
                 sendMessage(sender, "Unknown network");
-
                 return true;
             }
 
@@ -653,13 +656,11 @@ public class AngelGates extends JavaPlugin {
                     && !hasPerm(sender, "angelgates.commands")
                     && !hasPerm(sender, "angelgates.commands.remmember")) {
                 sendMessage(sender, "Permission denied", true);
-
                 return true;
             }
 
             if (!network.isMember(other)) {
                 sendMessage(sender, other + " is not a member of this network");
-
                 return true;
             }
 
@@ -680,7 +681,6 @@ public class AngelGates extends JavaPlugin {
 
             if (network == null) {
                 sendMessage(sender, "Unknown network");
-
                 return true;
             }
 
@@ -688,20 +688,17 @@ public class AngelGates extends JavaPlugin {
                     && !hasPerm(sender, "angelgates.commands")
                     && !hasPerm(sender, "angelgates.commands.setowner")) {
                 sendMessage(sender, "Permission denied");
-
                 return true;
             }
 
             if (!other.startsWith("g:") && !other.startsWith("t:")
                     && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
                 sendMessage(sender, other + " has never joined this server");
-
                 return true;
             }
 
             if (!network.isMember(other)) {
                 sendMessage(sender, other + " must be a member of this network to become owner!");
-
                 return true;
             }
 
@@ -726,12 +723,11 @@ public class AngelGates extends JavaPlugin {
 
             if (network == null) {
                 sendMessage(sender, "Unknown network");
-
                 return true;
             }
 
-            sendMessage(sender, "Name: " + network.getName());
-            sendMessage(sender, "Owner: " + network.getOwner());
+            sendMessage(sender, "Name: " + network.getName(), false);
+            sendMessage(sender, "Owner: " + network.getOwner(), false);
 
             StringBuilder sb = new StringBuilder();
             boolean first = true;
@@ -742,10 +738,12 @@ public class AngelGates extends JavaPlugin {
                 } else {
                     sb.append(", ");
                 }
+                
                 sb.append(item);
             }
 
-            sendMessage(sender, "Members: " + sb.toString());
+            sendMessage(sender, "Members: " + sb.toString(), false);
+            sendMessage(sender, "Number of gates: " + Portal.getNetwork(network.getName()).size(), false);
         }
 
         return true;
@@ -785,7 +783,7 @@ public class AngelGates extends JavaPlugin {
             sb.append(item.getName());
         }
 
-        sendMessage(sender, "Owned networks: " + sb.toString());
+        sendMessage(sender, "Owned networks: " + sb.toString(), false);
         sendMessage(sender, owned.size() + " networks of " + (limit > -1 ? limit : "unlimited") + " owned.", false);
 
         return true;
@@ -795,7 +793,6 @@ public class AngelGates extends JavaPlugin {
         if (!hasPerm(sender, "angelgates.commands")
                 && !hasPerm(sender, "angelgates.commands.setnetworks")) {
             sendMessage(sender, "Permission denied");
-
             return true;
         }
 
@@ -808,7 +805,6 @@ public class AngelGates extends JavaPlugin {
         if (!other.startsWith("g:") && !other.startsWith("t:")
                 && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
             sendMessage(sender, other + " has never joined this server");
-
             return true;
         }
 
@@ -824,12 +820,10 @@ public class AngelGates extends JavaPlugin {
 
         if (amount < -1) {
             sendMessage(sender, "Number must be -1 or more!");
-
             return true;
         }
 
         Networks.setNetworkLimit(other, amount);
-
         sendMessage(sender, "Network limit for " + other + " set to " + (amount != -1 ? amount : "infinite"), false);
 
         return true;
@@ -839,8 +833,7 @@ public class AngelGates extends JavaPlugin {
         if (!hasPerm(sender, "angelgates.commands")
                 && !hasPerm(sender, "angelgates.commands.addnetworks")) {
             sendMessage(sender, "Permission denied");
-
-            return true;
+            return false;
         }
 
         if (args.length != 3) {
@@ -852,8 +845,7 @@ public class AngelGates extends JavaPlugin {
         if (!other.startsWith("g:") && !other.startsWith("t:")
                 && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
             sendMessage(sender, other + " has never joined this server");
-
-            return true;
+            return false;
         }
 
         String samount = args[2];
@@ -863,19 +855,17 @@ public class AngelGates extends JavaPlugin {
             amount = Integer.valueOf(samount);
         } catch (IllegalArgumentException e) {
             sendMessage(sender, "Must specifiy integer for amount for second argument");
-            return true;
+            return false;
         }
 
         if (amount < 1) {
             sendMessage(sender, "Number must be 1 or more!");
-
-            return true;
+            return false;
         }
 
         Networks.addNetworkLimit(other, amount);
-
+        
         int limit = Networks.getNetworkLimit(other);
-
         sendMessage(sender, "Network limit for " + other + " set to " + limit, false);
 
         return true;
