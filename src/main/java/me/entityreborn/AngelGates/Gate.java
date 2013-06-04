@@ -96,19 +96,22 @@ public class Gate {
 
         for (int y = 0; y < layout.length; y++) {
             for (int x = 0; x < layout[y].length; x++) {
+                RelativeBlockVector vect = new RelativeBlockVector(x, y, 0);
                 Integer id = typedata.get(layout[y][x]).getType();
+                
                 if (layout[y][x] == '-') {
-                    controlList.add(new RelativeBlockVector(x, y, 0));
+                    controlList.add(vect);
                 }
 
                 if (id == ENTRANCE || id == EXIT) {
-                    entranceList.add(new RelativeBlockVector(x, y, 0));
+                    entranceList.add(vect);
                     exitDepths[x] = y;
+                    
                     if (id == EXIT) {
-                        this.exitBlock = new RelativeBlockVector(x, y, 0);
+                        this.exitBlock = vect;
                     }
                 } else if (id != ANYTHING) {
-                    borderList.add(new RelativeBlockVector(x, y, 0));
+                    borderList.add(vect);
                 }
             }
         }

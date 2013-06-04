@@ -8,15 +8,15 @@ If you have Towny installed, Towns can be owners or members, and if you have Vau
 
 ##Commands##
 
-Here are the commands that manipulate how AngelGates operates.
+Here are the commands that manipulate how AngelGates operates. You can use either `/ag` or `/angelgates`, tho we will use `/ag` here for brevity.
 
 _You can prefix names with `t:` or `g:` to use Towny towns and permission groups respectively._
 
-`/ag help [command]` - View help in-game.
+`/ag help [command]` - View help in-game. The command is optional.
 
 `/ag reload` - Reload AngelGates from disk. Requires `angelgates.admin.reload` permission.
 
-`/ag info [name]` - Find out info about yourself, or about a given name if provided.
+`/ag info [name]` - Find out info about yourself, or about a given name if provided. The name is optional.
 
 `/ag netinfo <network>` - Find out info about a given network.
 
@@ -93,3 +93,5 @@ You can supply block data in the format `X=35:15` which would only allow black w
 `TheDgtl` - Bukkit port of the hMod version. (see [here][thedgtl] for source)
 [thedgtl]: http://github.com/TheDgtl/Stargate-Bukkit
 
+`VergilPrime` from [`Angel's Reach`][reach] - Coder motivation ;)
+[reach]: http://www.angels-reach.net/

@@ -621,7 +621,8 @@ public class AngelGates extends JavaPlugin {
                 return true;
             }
 
-            if (!other.startsWith("g:") && !other.startsWith("t:")
+            if (!other.equalsIgnoreCase("~everyone") &&
+                    !other.startsWith("g:") && !other.startsWith("t:")
                     && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
                 sendMessage(sender, other + " has never joined this server!");
                 return true;
@@ -691,7 +692,8 @@ public class AngelGates extends JavaPlugin {
                 return true;
             }
 
-            if (!other.startsWith("g:") && !other.startsWith("t:")
+            if (!other.equalsIgnoreCase("~everyone") &&
+                    !other.startsWith("g:") && !other.startsWith("t:")
                     && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
                 sendMessage(sender, other + " has never joined this server");
                 return true;
@@ -758,7 +760,12 @@ public class AngelGates extends JavaPlugin {
         }
 
         if (args.length >= 2) {
-            name = args[1];
+            name = args[1].trim();
+            
+            if(name.equalsIgnoreCase("~everyone")) {
+                sendMessage(sender, name + " is not a valid name");
+                return true;
+            }
 
             if (!name.startsWith("g:") && !name.startsWith("t:")
                     && Bukkit.getServer().getOfflinePlayer(name).getFirstPlayed() == 0) {
@@ -802,6 +809,11 @@ public class AngelGates extends JavaPlugin {
 
         String other = args[1];
 
+        if(other.equalsIgnoreCase("~everyone")) {
+            sendMessage(sender, other + " is not a valid name");
+            return true;
+        }
+        
         if (!other.startsWith("g:") && !other.startsWith("t:")
                 && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
             sendMessage(sender, other + " has never joined this server");
@@ -841,6 +853,11 @@ public class AngelGates extends JavaPlugin {
         }
 
         String other = args[1];
+        
+        if(other.equalsIgnoreCase("~everyone")) {
+            sendMessage(sender, other + " is not a valid name");
+            return true;
+        }
 
         if (!other.startsWith("g:") && !other.startsWith("t:")
                 && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
@@ -876,7 +893,8 @@ public class AngelGates extends JavaPlugin {
         String cmd = command.getName();
         boolean retn = false;
 
-        if (cmd.equalsIgnoreCase("ag")) {
+        if (cmd.equalsIgnoreCase("ag") ||
+                cmd.equalsIgnoreCase("angelgates")) {
             if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
                 retn = onCmdHelp(sender, args);
             } else if (args[0].equalsIgnoreCase("info")) {

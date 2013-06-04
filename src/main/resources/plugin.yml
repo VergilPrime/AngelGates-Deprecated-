@@ -8,3 +8,6 @@ commands:
   ag:
     description: Used to provide information about the plugin.
     usage: /<command> - Used to provide information about the plugin.
+  angelgates:
+    description: Used to provide information about the plugin.
+    usage: /<command> - Used to provide information about the plugin.
