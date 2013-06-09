@@ -78,6 +78,7 @@ public class Portal {
     private String network;
     private Gate gate;
     private boolean verified;
+    private String builtBy;
     // In-use information
     private ArrayList<String> destinations = new ArrayList<String>();
     private boolean isOpen = false;
@@ -86,7 +87,7 @@ public class Portal {
 
     private Portal(Blox topLeft, int modX, int modZ,
             float rotX, Blox id, Blox button,
-            String name,
+            String name, String builder, 
             boolean verified, String network, Gate gate) {
         this.topLeft = topLeft;
         this.modX = modX;
@@ -98,6 +99,7 @@ public class Portal {
         this.network = network;
         this.name = name;
         this.gate = gate;
+        this.builtBy = builder;
 
         if (verified) {
             this.drawSign();
@@ -829,7 +831,8 @@ public class Portal {
         Blox button = null;
         Portal portal;
         
-        portal = new Portal(topleft, modX, modZ, rotX, id, button, name, false, network, gate);
+        portal = new Portal(topleft, modX, modZ, rotX, id, button, name, 
+                player.getName(), false, network, gate);
 
         int cost = AngelGates.getCreateCost(player, gate);
 
@@ -972,6 +975,7 @@ public class Portal {
             portalsect.set("gate", portal.gate.getFilename());
             portalsect.set("network", portal.getNetworkName());
             portalsect.set("world", portal.getWorld().getName());
+            portalsect.set("builtBy", portal.builtBy);
         }
 
         try {
@@ -1053,7 +1057,8 @@ public class Portal {
                     }
                     
                     if (!Networks.has(network)) {
-                        AngelGates.log.info("Network " + network + " for " + key + " does not exist. Skipping for now.");
+                        AngelGates.log.info("Network " + network + " for " 
+                                + key + " does not exist. Skipping for now.");
                         continue;
                     }
                     
@@ -1061,20 +1066,29 @@ public class Portal {
                     int modZ = Integer.parseInt(portalsect.getString("modZ"));
                     float rotX = Float.parseFloat(portalsect.getString("rotX"));
                     Blox topLeft = new Blox(world, portalsect.getString("topLeft"));
+                    String builder = Networks.get(network).getOwner();
+                            
+                    if (portalsect.isString("buildBy")) {
+                        builder = portalsect.getString("builtBy");
+                    }
                     
-                    Portal portal = new Portal(topLeft, modX, modZ, rotX, sign, button, key, false, network, gate);
+                    Portal portal = new Portal(topLeft, modX, modZ, rotX, sign, 
+                            button, key, builder, false, network, gate);
                     portal.register();
                     portal.close(true);
                     
                     portalCount++;
                 } catch (Exception e) {
-                    AngelGates.log.log(Level.SEVERE, "Malformed data for portal " + key + " in " + file.getName() + ": " + e.getMessage());
+                    AngelGates.log.log(Level.SEVERE, "Malformed data for portal " 
+                            + key + " in " + file.getName() + ": " + e.getMessage());
                 }
             }
 
-            AngelGates.log.info("{" + world.getName() + "} Loaded " + portalCount + " AngelGates.");
+            AngelGates.log.info("{" + world.getName() + "} Loaded " 
+                    + portalCount + " AngelGates.");
         } catch (Exception e) {
-            AngelGates.log.log(Level.SEVERE, "Exception while reading AngelGates from " + file.getName() + ": " + e.getMessage());
+            AngelGates.log.log(Level.SEVERE, "Exception while reading AngelGates from " 
+                    + file.getName() + ": " + e.getMessage());
             e.printStackTrace();
         }
         
