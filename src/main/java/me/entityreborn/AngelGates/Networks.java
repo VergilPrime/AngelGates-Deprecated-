@@ -23,7 +23,6 @@ import org.bukkit.entity.Player;
  * @author import
  */
 public class Networks {
-
     public static class Network {
         private String name;
         private String owner;
@@ -188,6 +187,10 @@ public class Networks {
     
     public static boolean has(String net) {
         return networks.containsKey(net.toLowerCase());
+    }
+    
+    public static void remove(String networkName) {
+        networks.remove(networkName);
     }
     
     public static void clear() {

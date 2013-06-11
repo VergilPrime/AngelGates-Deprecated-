@@ -671,6 +671,12 @@ public class Portal {
             sign.setLine(3, "");
             sign.update();
         }
+        
+        if (lookupNamesNet.get(getNetworkName().toLowerCase()).isEmpty()) {
+            lookupNamesNet.remove(getNetworkName().toLowerCase());
+            allPortalsNet.remove(getNetworkName().toLowerCase());
+            Networks.remove(getNetworkName());
+        }
 
         saveAllGates(getWorld());
     }
