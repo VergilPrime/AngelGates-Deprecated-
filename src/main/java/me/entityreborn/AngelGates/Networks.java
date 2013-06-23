@@ -27,6 +27,7 @@ public class Networks {
         private String name;
         private String owner;
         private Set<String> members;
+        private Map<String, Portal> portals;
 
         public Network(String name, String owner) {
             this.name = name;
@@ -34,6 +35,26 @@ public class Networks {
             
             members = new HashSet<String>();
             members.add(owner.toLowerCase());
+            
+            portals = new HashMap<String, Portal>();
+        }
+        
+        public void registerPortal(Portal portal) {
+            portals.put(portal.getName().toLowerCase(), portal);
+            Networks.save();
+        }
+        
+        public void unregisterPortal(Portal portal) {
+            portals.remove(portal.getName().toLowerCase());
+            
+            if (portals.isEmpty()) {
+                Networks.remove(name);
+                Networks.save();
+            }
+        }
+        
+        public Portal getPortal(String name) {
+            return portals.get(name.toLowerCase());
         }
         
         public void addMember(String name) {
@@ -117,18 +138,30 @@ public class Networks {
         void setOwner(String other) {
             owner = other.toLowerCase();
             
-            for (String pname : Portal.getNetwork(name)) {
+            for (String pname : Portal.getNetworkPortals(name).keySet()) {
                 Portal p = Portal.getByName(pname, name);
                 p.drawSign();
             }
             
             Networks.save();
         }
+        
+        public Map<String, Portal> getPortals() {
+            return Collections.unmodifiableMap(portals);
+        }
     }
     
     private static Map<String, Network> networks = new HashMap<String, Network>();
     private static Map<String, Integer> networkLimit = new HashMap<String, Integer>();
     private static File file;
+    
+    public static Map<String, Portal> getPortals(String network) {
+        if (!has(network)) {
+            return new HashMap<String, Portal>();
+        }
+        
+        return get(network).getPortals();
+    }
     
     public static int getNetworkLimit(String player) {
         if (!networkLimit.containsKey(player.toLowerCase())) {
@@ -190,7 +223,7 @@ public class Networks {
     }
     
     public static void remove(String networkName) {
-        networks.remove(networkName);
+        networks.remove(networkName.toLowerCase());
     }
     
     public static void clear() {

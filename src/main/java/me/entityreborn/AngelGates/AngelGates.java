@@ -134,7 +134,7 @@ public class AngelGates extends JavaPlugin {
         Portal destination = portal.getDestination();
 
         // Invalid destination
-        if ((destination == null) || (destination == portal)) {
+        if (destination == null || destination == portal) {
             AngelGates.sendMessage(player, AngelGates.getString("invalidMsg"));
             return;
         }
@@ -745,7 +745,7 @@ public class AngelGates extends JavaPlugin {
             }
 
             sendMessage(sender, "Members: " + sb.toString(), false);
-            sendMessage(sender, "Number of gates: " + Portal.getNetwork(network.getName()).size(), false);
+            sendMessage(sender, "Number of gates: " + Portal.getNetworkPortals(network.getName()).size(), false);
         }
 
         return true;
