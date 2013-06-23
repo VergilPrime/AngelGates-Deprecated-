@@ -57,7 +57,8 @@ public class AngelGates extends JavaPlugin {
     private static String langFolder;
     private static String defNetwork = "central";
     public static boolean destroyExplosion = false;
-    public static int defaultNetsPerPlayer = 0;
+    public static int defaultNetsPerPlayer = 1;
+    public static int defaultGatesPerPlayer = 2;
     private static String langName = "en";
     private static int activeTime = 10;
     private static int openTime = 10;
@@ -407,6 +408,7 @@ public class AngelGates extends JavaPlugin {
         defNetwork = newConfig.getString("default-gate-network").trim();
         destroyExplosion = newConfig.getBoolean("destroy-explosion");
         defaultNetsPerPlayer = newConfig.getInt("nets-per-player");
+        defaultGatesPerPlayer = newConfig.getInt("gates-per-player");
         langName = newConfig.getString("language");
         rememberLastDest = newConfig.getBoolean("remember-destination");
         ignoreEntrance = newConfig.getBoolean("ignore-entrance");

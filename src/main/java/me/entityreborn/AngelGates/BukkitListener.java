@@ -53,6 +53,7 @@ public class BukkitListener implements Listener {
         if (!handleVehicles) {
             return;
         }
+        
         Entity passenger = event.getVehicle().getPassenger();
         Vehicle vehicle = event.getVehicle();
 
@@ -239,6 +240,7 @@ public class BukkitListener implements Listener {
                 if (!portal.isOpen()) {
                     portal.cycleDestination(player);
                 }
+                
                 return;
             }
 
@@ -267,6 +269,7 @@ public class BukkitListener implements Listener {
                 
                 event.setUseInteractedBlock(Event.Result.ALLOW);
             }
+            
             return;
         }
 
@@ -340,7 +343,7 @@ public class BukkitListener implements Listener {
         if (block.getType() != Material.WALL_SIGN) {
             return;
         }
-
+        
         final Portal portal = Portal.createPortal(event, player);
         
         // Not creating a gate, just placing a sign

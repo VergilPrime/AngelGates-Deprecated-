@@ -731,7 +731,7 @@ public class Portal {
             AngelGates.debug("createPortal", "idParent belongs to existing gate");
             return null;
         }
-
+        
         Blox parent = new Blox(player.getWorld(), idParent.getX(), idParent.getY(), idParent.getZ());
         Blox topleft = null;
         String network = filterName(event.getLine(0));
@@ -793,6 +793,19 @@ public class Portal {
 
         if (gate == null || buttonVector == null) {
             AngelGates.debug("createPortal", "Could not find matching gate layout");
+            return null;
+        }
+        
+        int has = getBuiltBy(player.getName()).size();
+        
+        if (has >= Networks.getGateLimit(player.getName())) {
+            String msg = AngelGates.getString("createTooMany");
+            msg = msg.replaceAll("%has%", String.valueOf(has));
+            msg = msg.replaceAll("%limit%", 
+                    String.valueOf(Networks.getGateLimit(player.getName())));
+            
+            AngelGates.sendMessage(player, msg, true);
+            
             return null;
         }
 

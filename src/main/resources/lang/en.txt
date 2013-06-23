@@ -12,6 +12,7 @@ ecoObtain=Obtained %cost% from AngelGate %portal%
 ecoInFunds=Insufficient funds
 
 createMsg=Gate Created
+createTooMany=You have exceeded your gate limit (You have %has% of %limit%)
 createNetRestricted=You do not have access to this restricted network
 createNetDeny=You do not have access to this network
 createNameLength=Name too short or too long.

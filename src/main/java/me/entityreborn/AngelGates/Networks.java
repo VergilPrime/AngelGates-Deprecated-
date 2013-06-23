@@ -153,6 +153,7 @@ public class Networks {
     
     private static Map<String, Network> networks = new HashMap<String, Network>();
     private static Map<String, Integer> networkLimit = new HashMap<String, Integer>();
+    private static Map<String, Integer> gateLimit = new HashMap<String, Integer>();
     private static File file;
     
     public static Map<String, Portal> getPortals(String network) {
@@ -179,6 +180,24 @@ public class Networks {
         int limit = getNetworkLimit(other.toLowerCase()) + amount;
         
         networkLimit.put(other.toLowerCase(), limit);
+    }
+    
+    public static int getGateLimit(String player) {
+        if (!gateLimit.containsKey(player.toLowerCase())) {
+            return AngelGates.defaultGatesPerPlayer;
+        }
+        
+        return gateLimit.get(player.toLowerCase());
+    }
+    
+    public static void setGateLimit(String player, int limit) {
+        gateLimit.put(player.toLowerCase(), limit);
+    }
+    
+    static void addGateLimit(String other, int amount) {
+        int limit = getNetworkLimit(other.toLowerCase()) + amount;
+        
+        gateLimit.put(other.toLowerCase(), limit);
     }
     
     public static Set<Network> getOwnedNetworks(String player) {
@@ -270,6 +289,12 @@ public class Networks {
                 } else if (sect.contains("netlimit")) {
                     AngelGates.log.warning("'netlimit' for user '" + user + "' is malformed. Ignoring!");
                 }
+                
+                if (sect.isInt("gatelimit")) {
+                    gateLimit.put(user.toLowerCase(), sect.getInt("gatelimit"));
+                } else if (sect.contains("gatelimit")) {
+                    AngelGates.log.warning("'gatelimit' for user '" + user + "' is malformed. Ignoring!");
+                }
             }
         }
         
@@ -325,10 +350,14 @@ public class Networks {
         
         ConfigurationSection usersect = yaml.createSection("users");
         
-        for (String user: networkLimit.keySet()) {
+        Set<String> users = networkLimit.keySet();
+        users.addAll(gateLimit.keySet());
+        
+        for (String user: users) {
             ConfigurationSection sect = usersect.createSection(user);
             
             sect.set("netlimit", getNetworkLimit(user));
+            sect.set("gatelimit", getGateLimit(user));
         }
         
         try {

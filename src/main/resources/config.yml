@@ -26,7 +26,8 @@
 # permdebug - This will output any and all Permissions checks to console, used for permissions debugging (Requires debug: true)
 default-gate-network: central
 destroyexplosion: false
-nets-per-player: 0
+nets-per-player: 1
+gates-per-player: 2
 language: en
 remember-destination: false
 ignore-entrance: false
