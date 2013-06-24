@@ -174,12 +174,14 @@ public class Networks {
     
     public static void setNetworkLimit(String player, int limit) {
         networkLimit.put(player.toLowerCase(), limit);
+        save();
     }
     
-    static void addNetworkLimit(String other, int amount) {
+    public static void addNetworkLimit(String other, int amount) {
         int limit = getNetworkLimit(other.toLowerCase()) + amount;
         
         networkLimit.put(other.toLowerCase(), limit);
+        save();
     }
     
     public static int getGateLimit(String player) {
@@ -192,12 +194,14 @@ public class Networks {
     
     public static void setGateLimit(String player, int limit) {
         gateLimit.put(player.toLowerCase(), limit);
+        save();
     }
     
-    static void addGateLimit(String other, int amount) {
-        int limit = getNetworkLimit(other.toLowerCase()) + amount;
+    public static void addGateLimit(String other, int amount) {
+        int limit = getGateLimit(other.toLowerCase()) + amount;
         
         gateLimit.put(other.toLowerCase(), limit);
+        save();
     }
     
     public static Set<Network> getOwnedNetworks(String player) {
@@ -350,14 +354,20 @@ public class Networks {
         
         ConfigurationSection usersect = yaml.createSection("users");
         
-        Set<String> users = networkLimit.keySet();
+        Set<String> users = new HashSet<String>();
+        users.addAll(networkLimit.keySet());
         users.addAll(gateLimit.keySet());
         
         for (String user: users) {
             ConfigurationSection sect = usersect.createSection(user);
             
-            sect.set("netlimit", getNetworkLimit(user));
-            sect.set("gatelimit", getGateLimit(user));
+            if (networkLimit.containsKey(user)) {
+                sect.set("netlimit", getNetworkLimit(user));
+            }
+            
+            if (gateLimit.containsKey(user)) {
+                sect.set("gatelimit", getGateLimit(user));
+            }
         }
         
         try {

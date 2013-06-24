@@ -118,6 +118,10 @@ public class Portal {
         return portals;
     }
     
+    public String getBuilder() {
+        return builtBy;
+    }
+    
     public boolean isOpen() {
         return isOpen;
     }
@@ -795,19 +799,6 @@ public class Portal {
             AngelGates.debug("createPortal", "Could not find matching gate layout");
             return null;
         }
-        
-        int has = getBuiltBy(player.getName()).size();
-        
-        if (has >= Networks.getGateLimit(player.getName())) {
-            String msg = AngelGates.getString("createTooMany");
-            msg = msg.replaceAll("%has%", String.valueOf(has));
-            msg = msg.replaceAll("%limit%", 
-                    String.valueOf(Networks.getGateLimit(player.getName())));
-            
-            AngelGates.sendMessage(player, msg, true);
-            
-            return null;
-        }
 
         if (network.length() < 1 || network.length() > 11) {
             network = AngelGates.getDefaultNetwork();
@@ -815,9 +806,32 @@ public class Portal {
 
         boolean deny = false;
         String denyMsg = "";
-
-        // Check if the player can create gates on this network
-        if (!AngelGates.canCreate(player, network)) {
+        
+        int ghas = getBuiltBy(player.getName()).size();
+        int glimit = Networks.getGateLimit(player.getName());
+        int nhas = Networks.getOwnedNetworks(player.getName()).size();
+        int nlimit = Networks.getNetworkLimit(player.getName());
+        
+        if (ghas >= glimit && !player.hasPermission("angelgates.admin") && 
+                !player.hasPermission("angelgates.admin.create")) {
+            AngelGates.debug("createPortal", "Player has reached his gate limit");
+            
+            denyMsg = AngelGates.getString("createTooManyGates");
+            denyMsg = denyMsg.replaceAll("%has%", String.valueOf(ghas));
+            denyMsg = denyMsg.replaceAll("%limit%", String.valueOf(glimit));
+            
+            deny = true;
+        } else if (!Networks.has(network) &&
+                nhas >= nlimit && !player.hasPermission("angelgates.admin") && 
+                !player.hasPermission("angelgates.admin.create")) {
+            AngelGates.debug("createPortal", "Player has reached his network limit");
+            
+            denyMsg = AngelGates.getString("createTooManyNets");
+            denyMsg = denyMsg.replaceAll("%has%", String.valueOf(nhas));
+            denyMsg = denyMsg.replaceAll("%limit%", String.valueOf(nlimit));
+            
+            deny = true;
+        } else if (!AngelGates.canCreate(player, network)) {
             AngelGates.debug("createPortal", "Player does not have access to network");
             deny = true;
             denyMsg = AngelGates.getString("createNetDeny");
@@ -1081,7 +1095,7 @@ public class Portal {
                     Blox topLeft = new Blox(world, portalsect.getString("topLeft"));
                     String builder = Networks.get(network).getOwner();
                             
-                    if (portalsect.isString("buildBy")) {
+                    if (portalsect.isString("builtBy")) {
                         builder = portalsect.getString("builtBy");
                     }
                     

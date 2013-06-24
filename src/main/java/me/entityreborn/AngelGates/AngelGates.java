@@ -200,17 +200,7 @@ public class AngelGates extends JavaPlugin {
             return Networks.get(network).isMember(player.getName());
         }
 
-        int limit = Networks.getNetworkLimit(player.getName());
-
-        if (limit == -1) {
-            return true;
-        }
-
-        if (Networks.getOwnedNetworks(network).size() < limit) {
-            return true;
-        }
-
-        return false;
+        return true;
     }
 
     /*
@@ -791,9 +781,13 @@ public class AngelGates extends JavaPlugin {
 
             sb.append(item.getName());
         }
-
+        
+        Set<Portal> built = Portal.getBuiltBy(name);
+        int blimit = Networks.getGateLimit(name);
+        
         sendMessage(sender, "Owned networks: " + sb.toString(), false);
         sendMessage(sender, owned.size() + " networks of " + (limit > -1 ? limit : "unlimited") + " owned.", false);
+        sendMessage(sender, built.size() + " gates of " + (blimit > -1 ? blimit : "unlimited") + " built.", false);
 
         return true;
     }
@@ -839,6 +833,51 @@ public class AngelGates extends JavaPlugin {
 
         Networks.setNetworkLimit(other, amount);
         sendMessage(sender, "Network limit for " + other + " set to " + (amount != -1 ? amount : "infinite"), false);
+
+        return true;
+    }
+    
+    private boolean onCmdSetGates(CommandSender sender, String[] args) {
+        if (!hasPerm(sender, "angelgates.commands")
+                && !hasPerm(sender, "angelgates.commands.setgates")) {
+            sendMessage(sender, "Permission denied");
+            return true;
+        }
+
+        if (args.length != 3) {
+            return false;
+        }
+
+        String other = args[1];
+
+        if(other.equalsIgnoreCase("~everyone")) {
+            sendMessage(sender, other + " is not a valid name");
+            return true;
+        }
+        
+        if (!other.startsWith("g:") && !other.startsWith("t:")
+                && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+            sendMessage(sender, other + " has never joined this server");
+            return true;
+        }
+
+        String samount = args[2];
+        int amount;
+
+        try {
+            amount = Integer.valueOf(samount);
+        } catch (IllegalArgumentException e) {
+            sendMessage(sender, "Must specifiy integer for amount for second argument");
+            return true;
+        }
+
+        if (amount < -1) {
+            sendMessage(sender, "Number must be -1 or more!");
+            return true;
+        }
+
+        Networks.setGateLimit(other, amount);
+        sendMessage(sender, "Gate limit for " + other + " set to " + (amount != -1 ? amount : "infinite"), false);
 
         return true;
     }
@@ -889,6 +928,53 @@ public class AngelGates extends JavaPlugin {
 
         return true;
     }
+    
+    private boolean onCmdAddGates(CommandSender sender, String[] args) {
+        if (!hasPerm(sender, "angelgates.commands")
+                && !hasPerm(sender, "angelgates.commands.addgates")) {
+            sendMessage(sender, "Permission denied");
+            return false;
+        }
+
+        if (args.length != 3) {
+            return false;
+        }
+
+        String other = args[1];
+        
+        if(other.equalsIgnoreCase("~everyone")) {
+            sendMessage(sender, other + " is not a valid name");
+            return true;
+        }
+
+        if (!other.startsWith("g:") && !other.startsWith("t:")
+                && Bukkit.getServer().getOfflinePlayer(other).getFirstPlayed() == 0) {
+            sendMessage(sender, other + " has never joined this server");
+            return false;
+        }
+
+        String samount = args[2];
+        int amount;
+
+        try {
+            amount = Integer.valueOf(samount);
+        } catch (IllegalArgumentException e) {
+            sendMessage(sender, "Must specifiy integer for amount for second argument");
+            return false;
+        }
+
+        if (amount < 1) {
+            sendMessage(sender, "Number must be 1 or more!");
+            return false;
+        }
+
+        Networks.addGateLimit(other, amount);
+        
+        int limit = Networks.getGateLimit(other);
+        sendMessage(sender, "Gate limit for " + other + " set to " + limit, false);
+
+        return true;
+    }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -915,6 +1001,10 @@ public class AngelGates extends JavaPlugin {
                 retn = onCmdSetNetworks(sender, args);
             } else if (args[0].equalsIgnoreCase("addnetworks")) {
                 retn = onCmdAddNetworks(sender, args);
+            } else if (args[0].equalsIgnoreCase("setgates")) {
+                retn = onCmdSetGates(sender, args);
+            } else if (args[0].equalsIgnoreCase("addgates")) {
+                retn = onCmdAddGates(sender, args);
             }
 
             if (!retn) {

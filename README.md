@@ -4,6 +4,8 @@ AngelGates allows people to create gates that cover any amount of distance, poss
 
 Members of a network can add more gates to that network, and owners can manage that network's members.
 
+Any member of a network can destroy a gate of that network, and the network will be deleted once all gates of that network are destroyed.
+
 If you have Towny installed, Towns can be owners or members, and if you have Vault installed, groups can also be owners or members.
 
 ##Commands##
@@ -20,9 +22,13 @@ _You can prefix names with `t:` or `g:` to use Towny towns and permission groups
 
 `/ag netinfo <network>` - Find out info about a given network.
 
-`/ag setnetworks <name> <amount>` - Set the limit of networks for a given name to a given amount. Set this to `-1` to allow infinite networks, and `0` to not allow any. Requires `angelgates.admin` permission.
+`/ag setnetworks <name> <amount>` - Set the limit of networks for a given name to a given amount. Set this to `-1` to allow infinite networks, and `0` to not allow any. Requires `angelgates.admin.setnetworks` permission.
 
 `/ag addnetworks <name> <amount>` - Increase the limit of networks for a given name by a given amount. Requires `angelgates.admin.addnetworks` permission.
+
+`/ag setgates <name> <amount>` - Set the limit of gates for a given name to a given amount. Set this to `-1` to allow infinite gates, and `0` to not allow any. Requires `angelgates.admin.setgates` permission.
+
+`/ag addgates <name> <amount>` - Increase the limit of gates for a given name by a given amount. Requires `angelgates.admin.addgates` permission.
 
 `/ag setowner <net> <name>` - Set the given name as the owner for the given network. The previous owner will be demoted to member. Can only be run by that network's owner, or with the `angelgates.admin.setowner` permission.
 
@@ -85,6 +91,11 @@ In the gate format, you can see we use "X" to show where obsidian must be, "-" w
 You will also notice a "*" in the gate layout, this is the "exit point" of the gate, the block at which the player will teleport in front of.
 
 You can supply block data in the format `X=35:15` which would only allow black wool. If no data is supplied any version of a block will work (any color of wool, for example).
+
+##Builds##
+
+Builds are currently hosted [here][builds], courtesy of Nixium.
+[builds]: http://ci.nixium.com/job/AngelGates/
 
 ##Credits##
 
